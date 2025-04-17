@@ -7,7 +7,9 @@ import zipfile
 import tarfile
 import platform
 	
-#  python3 setup.py built_ext --inplace
+#  python3 setup.py build_ext --inplace
+
+is_windows = platform.system() == "Windows"
 
 VERSION = '2.0.6'
 
@@ -245,22 +247,28 @@ common = cleanrl + [environments[env] for env in [
     'vizdoom',
 ]]
 
-extension_paths = [
-    'pufferlib/ocean/nmmo3/cy_nmmo3',
-    'pufferlib/ocean/moba/cy_moba',
-    'pufferlib/ocean/tactical/c_tactical',
-    'pufferlib/ocean/squared/cy_squared',
-    'pufferlib/ocean/snake/cy_snake',
-    'pufferlib/ocean/pong/cy_pong',
-    'pufferlib/ocean/breakout/cy_breakout',
-    'pufferlib/ocean/enduro/cy_enduro',
-    'pufferlib/ocean/connect4/cy_connect4',
-    'pufferlib/ocean/grid/cy_grid',
-    'pufferlib/ocean/tripletriad/cy_tripletriad',
-    'pufferlib/ocean/go/cy_go',
-    'pufferlib/ocean/rware/cy_rware',
-    'pufferlib/ocean/trash_pickup/cy_trash_pickup'
-]
+if is_windows:
+    extension_paths = [
+        'pufferlib/ocean/squared/cy_squared',
+        'pufferlib/ocean/pong/cy_pong',
+    ]    
+else:
+    extension_paths = [
+        'pufferlib/ocean/nmmo3/cy_nmmo3',
+        'pufferlib/ocean/moba/cy_moba',
+        'pufferlib/ocean/tactical/c_tactical',
+        'pufferlib/ocean/squared/cy_squared',
+        'pufferlib/ocean/snake/cy_snake',
+        'pufferlib/ocean/pong/cy_pong',
+        'pufferlib/ocean/breakout/cy_breakout',
+        'pufferlib/ocean/enduro/cy_enduro',
+        'pufferlib/ocean/connect4/cy_connect4',
+        'pufferlib/ocean/grid/cy_grid',
+        'pufferlib/ocean/tripletriad/cy_tripletriad',
+        'pufferlib/ocean/go/cy_go',
+        'pufferlib/ocean/rware/cy_rware',
+        'pufferlib/ocean/trash_pickup/cy_trash_pickup'
+    ]
 
 system = platform.system()
 if system == 'Darwin':
@@ -290,15 +298,16 @@ extensions = [Extension(
 # Prevent Conda from injecting garbage compile flags
 from distutils.sysconfig import get_config_vars
 cfg_vars = get_config_vars()
-for key in ('CC', 'CXX', 'LDSHARED'):
-    if cfg_vars[key]:
-        cfg_vars[key] = cfg_vars[key].replace('-B /root/anaconda3/compiler_compat', '')
-        cfg_vars[key] = cfg_vars[key].replace('-pthread', '')
-        cfg_vars[key] = cfg_vars[key].replace('-fno-strict-overflow', '')
+if is_windows == False:
+    for key in ('CC', 'CXX', 'LDSHARED'):
+        if cfg_vars[key]:
+            cfg_vars[key] = cfg_vars[key].replace('-B /root/anaconda3/compiler_compat', '')
+            cfg_vars[key] = cfg_vars[key].replace('-pthread', '')
+            cfg_vars[key] = cfg_vars[key].replace('-fno-strict-overflow', '')
 
-for key, value in cfg_vars.items():
-    if value and '-fno-strict-overflow' in str(value):
-        cfg_vars[key] = value.replace('-fno-strict-overflow', '')
+    for key, value in cfg_vars.items():
+        if value and '-fno-strict-overflow' in str(value):
+            cfg_vars[key] = value.replace('-fno-strict-overflow', '')
 
 setup(
     name="pufferlib",

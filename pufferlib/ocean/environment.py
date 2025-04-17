@@ -1,21 +1,27 @@
 import pufferlib.emulation
 import pufferlib.postprocess
+import platform
+is_windows = platform.system() == "Windows"
+if is_windows:
+    os.add_dll_directory(r'..\..\..\..\..\pufferlib\raylib-5.0_win64_msvc16\lib')
+    #os.add_dll_directory(r'..\..\..\..\..\pufferlib\raylib-5.0_win64_mingw-w64\lib')
 
-from .snake.snake import Snake
 from .squared.squared import Squared
 from .squared.pysquared import PySquared
 from .pong.pong import Pong
-from .breakout.breakout import Breakout
-from .enduro.enduro import Enduro
-from .connect4.connect4 import Connect4
-from .tripletriad.tripletriad import TripleTriad
-from .tactical.tactical import Tactical
-from .moba.moba import Moba
-from .nmmo3.nmmo3 import NMMO3
-from .go.go import Go
-from .rware.rware import Rware
-#from .rocket_lander import rocket_lander
-from .trash_pickup.trash_pickup import TrashPickupEnv
+if is_windows == False:
+    from .snake.snake import Snake
+    from .breakout.breakout import Breakout
+    from .enduro.enduro import Enduro
+    from .connect4.connect4 import Connect4
+    from .tripletriad.tripletriad import TripleTriad
+    from .tactical.tactical import Tactical
+    from .moba.moba import Moba
+    from .nmmo3.nmmo3 import NMMO3
+    from .go.go import Go
+    from .rware.rware import Rware
+    #from .rocket_lander import rocket_lander
+    from .trash_pickup.trash_pickup import TrashPickupEnv
 
 def make_foraging(width=1080, height=720, num_agents=4096, horizon=512,
         discretize=True, food_reward=0.1, render_mode='rgb_array'):
@@ -123,38 +129,47 @@ def make_multiagent(buf=None, **kwargs):
     env = pufferlib.postprocess.MultiagentEpisodeStats(env)
     return pufferlib.emulation.PettingZooPufferEnv(env=env, buf=buf)
 
-MAKE_FNS = {
-    'breakout': Breakout,
-    'pong': Pong,
-    'enduro': Enduro,
-    'moba': Moba,
-    'nmmo3': NMMO3,
-    'snake': Snake,
-    'squared': Squared,
-    'pysquared': PySquared,
-    'connect4': Connect4,
-    'tripletriad': TripleTriad,
-    'tactical': Tactical,
-    'go': Go,
-    'rware': Rware,
-    'trash_pickup': TrashPickupEnv,
+if is_windows:
+    MAKE_FNS = {
+        'squared': Squared,
+        'pysquared': PySquared,
+        'pong': Pong,
+        
+        'puffer_grid': make_puffergrid,
+    }
+else:
+    MAKE_FNS = {
+        'breakout': Breakout,
+        'pong': Pong,
+        'enduro': Enduro,
+        'moba': Moba,
+        'nmmo3': NMMO3,
+        'snake': Snake,
+        'squared': Squared,
+        'pysquared': PySquared,
+        'connect4': Connect4,
+        'tripletriad': TripleTriad,
+        'tactical': Tactical,
+        'go': Go,
+        'rware': Rware,
+        'trash_pickup': TrashPickupEnv,
 
-    #'rocket_lander': rocket_lander.RocketLander,
-    'foraging': make_foraging,
-    'predator_prey': make_predator_prey,
-    'group': make_group,
-    'puffer': make_puffer,
-    'puffer_grid': make_puffergrid,
-    'continuous': make_continuous,
-    'bandit': make_bandit,
-    'memory': make_memory,
-    'password': make_password,
-    'stochastic': make_stochastic,
-    'multiagent': make_multiagent,
-    'spaces': make_spaces,
-    'performance': make_performance,
-    'performance_empiric': make_performance_empiric,
-}
+        #'rocket_lander': rocket_lander.RocketLander,
+        'foraging': make_foraging,
+        'predator_prey': make_predator_prey,
+        'group': make_group,
+        'puffer': make_puffer,
+        'puffer_grid': make_puffergrid,
+        'continuous': make_continuous,
+        'bandit': make_bandit,
+        'memory': make_memory,
+        'password': make_password,
+        'stochastic': make_stochastic,
+        'multiagent': make_multiagent,
+        'spaces': make_spaces,
+        'performance': make_performance,
+        'performance_empiric': make_performance_empiric,
+    }
 
 # Alias puffer_ to all names
 MAKE_FNS = {**MAKE_FNS, **{'puffer_' + k: v for k, v in MAKE_FNS.items()}}

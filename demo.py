@@ -20,7 +20,7 @@ import signal # Aggressively exit on ctrl+c
 signal.signal(signal.SIGINT, lambda sig, frame: os._exit(0))
 
 import clean_pufferl
-   
+
 def make_policy(env, policy_cls, rnn_cls, args):
     policy = policy_cls(env, **args['policy'])
     if rnn_cls is not None:
