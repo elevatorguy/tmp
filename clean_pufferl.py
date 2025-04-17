@@ -273,8 +273,8 @@ def train(data):
             data.stats = defaultdict(list)
 
         if data.epoch % config.checkpoint_interval == 0 or done_training:
-            save_checkpoint(data)
-            data.msg = f'Checkpoint saved at update {data.epoch}'
+##            save_checkpoint(data)
+            data.msg = f'Checkpoint not saved at update {data.epoch}'
 
 def mean_and_log(data):
     for k in list(data.stats.keys()):
