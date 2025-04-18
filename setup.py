@@ -6,7 +6,7 @@ import urllib.request
 import zipfile
 import tarfile
 import platform
-	
+
 #  python3 setup.py build_ext --inplace
 
 is_windows = platform.system() == "Windows"
@@ -260,7 +260,8 @@ if is_windows:
     extension_paths = [
         'pufferlib/ocean/squared/cy_squared',
         'pufferlib/ocean/pong/cy_pong',
-    ]    
+        'pufferlib/ocean/snake/cy_snake',
+    ]
 else:
     extension_paths = [
         'pufferlib/ocean/nmmo3/cy_nmmo3',
@@ -316,7 +317,7 @@ else:
         extra_link_args=['-Bsymbolic-functions', '-O2','-fwrapv'],
         extra_objects=[f'{RAYLIB_LIB}/libraylib.a']
     ) for path in extension_paths]
-    
+
 # Prevent Conda from injecting garbage compile flags
 from distutils.sysconfig import get_config_vars
 cfg_vars = get_config_vars()

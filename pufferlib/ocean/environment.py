@@ -10,8 +10,8 @@ if is_windows:
 from .squared.squared import Squared
 from .squared.pysquared import PySquared
 from .pong.pong import Pong
+from .snake.snake import Snake
 if is_windows == False:
-    from .snake.snake import Snake
     from .breakout.breakout import Breakout
     from .enduro.enduro import Enduro
     from .connect4.connect4 import Connect4
@@ -134,6 +134,7 @@ if is_windows:
     MAKE_FNS = {
         'squared': Squared,
         'pysquared': PySquared,
+        'snake': Snake,
         'pong': Pong,
         
         #'rocket_lander': rocket_lander.RocketLander,
