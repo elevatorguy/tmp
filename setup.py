@@ -17,6 +17,15 @@ RAYLIB_BASE = 'https://github.com/raysan5/raylib/releases/download/5.0/'
 
 RAYLIB_NAME = 'raylib-5.0_macos' if platform.system() == "Darwin" else 'raylib-5.0_linux_amd64'
 
+RAYLIB_WINDOWS = 'raylib-5.0_win64_msvc16'
+RAYLIB_WINDOWS_URL = RAYLIB_BASE + RAYLIB_WINDOWS + '.zip'
+if not os.path.exists(RAYLIB_WINDOWS):
+    urllib.request.urlretrieve(RAYLIB_WINDOWS_URL, RAYLIB_WINDOWS + '.zip')
+    with zipfile.ZipFile(RAYLIB_WINDOWS + '.zip', 'r') as zip_ref:
+        zip_ref.extractall()
+
+    os.remove(RAYLIB_WINDOWS + '.zip')
+
 RAYLIB_LINUX = 'raylib-5.0_linux_amd64'
 RAYLIB_LINUX_URL = RAYLIB_BASE + RAYLIB_LINUX + '.tar.gz'
 if not os.path.exists(RAYLIB_LINUX):
@@ -283,18 +292,31 @@ elif system == 'Linux':
     # That would break this linking. Rel path doesn't work outside the pufferlib dir
     RAYLIB_INCLUDE = f'{RAYLIB_LINUX}/include'
     RAYLIB_LIB = f'{RAYLIB_LINUX}/lib'
+elif system == 'Windows':
+    RAYLIB_INCLUDE = f'{RAYLIB_WINDOWS}/include'
+    RAYLIB_LIB = f'{RAYLIB_WINDOWS}/lib'
 else:
     raise ValueError(f'Unsupported system: {system}')
 
-extensions = [Extension(
-    path.replace('/', '.'),
-    [path + '.pyx'],
-    include_dirs=[numpy.get_include(), RAYLIB_INCLUDE],
-    extra_compile_args=['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION', '-DPLATFORM_DESKTOP', '-O2', '-Wno-alloc-size-larger-than', '-fwrapv'],#, '-g'],
-    extra_link_args=['-Bsymbolic-functions', '-O2', '-fwrapv'],
-    extra_objects=[f'{RAYLIB_LIB}/libraylib.a']
-) for path in extension_paths]
-
+if is_windows:
+    extensions = [Extension(
+        path.replace('/', '.'),
+        [path + '.pyx'],
+        include_dirs=[numpy.get_include(), RAYLIB_INCLUDE],
+        extra_compile_args=['/O2', '/DNDEBUG', '/DPLATFORM_DESKTOP'],
+        extra_link_args=[],
+        extra_objects=[f'{RAYLIB_LIB}/raylibdll.lib'],
+    ) for path in extension_paths]    
+else:
+    extensions = [Extension(
+        path.replace('/', '.'),
+        [path + '.pyx'],
+        include_dirs=[numpy.get_include(), RAYLIB_INCLUDE],
+        extra_compile_args=['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION', '-DPLATFORM_DESKTOP', '-O2', '-Wno-alloc-size-larger-than', '-fwrapv'],#, '-g'],
+        extra_link_args=['-Bsymbolic-functions', '-O2','-fwrapv'],
+        extra_objects=[f'{RAYLIB_LIB}/libraylib.a']
+    ) for path in extension_paths]
+    
 # Prevent Conda from injecting garbage compile flags
 from distutils.sysconfig import get_config_vars
 cfg_vars = get_config_vars()
