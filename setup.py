@@ -303,8 +303,8 @@ if is_windows:
         path.replace('/', '.'),
         [path + '.pyx'],
         include_dirs=[numpy.get_include(), RAYLIB_INCLUDE],
-        extra_compile_args=['/O2', '/DNDEBUG', '/DPLATFORM_DESKTOP'],
-        extra_link_args=[],
+        extra_compile_args=['/DPLATFORM_DESKTOP', '/O2','/fwrapv'],
+        extra_link_args=['/Bsymbolic-functions','/O2', '/fwrapv'],
         extra_objects=[f'{RAYLIB_LIB}/raylibdll.lib'],
     ) for path in extension_paths]    
 else:

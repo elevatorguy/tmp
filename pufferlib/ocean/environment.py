@@ -1,6 +1,7 @@
 import pufferlib.emulation
 import pufferlib.postprocess
 import platform
+import os
 is_windows = platform.system() == "Windows"
 if is_windows:
     os.add_dll_directory(r'..\..\..\..\..\pufferlib\raylib-5.0_win64_msvc16\lib')
@@ -135,7 +136,21 @@ if is_windows:
         'pysquared': PySquared,
         'pong': Pong,
         
+        #'rocket_lander': rocket_lander.RocketLander,
+        'foraging': make_foraging,
+        'predator_prey': make_predator_prey,
+        'group': make_group,
+        'puffer': make_puffer,
         'puffer_grid': make_puffergrid,
+        'continuous': make_continuous,
+        'bandit': make_bandit,
+        'memory': make_memory,
+        'password': make_password,
+        'stochastic': make_stochastic,
+        'multiagent': make_multiagent,
+        'spaces': make_spaces,
+        'performance': make_performance,
+        'performance_empiric': make_performance_empiric,
     }
 else:
     MAKE_FNS = {
