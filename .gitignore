@@ -6,7 +6,7 @@ pufferlib/ocean/tactical/c_tactical.c
 pufferlib/puffernet.c
 
 # Raylib
-raylib_wasm/
+raylib*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

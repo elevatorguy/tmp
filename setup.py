@@ -12,30 +12,20 @@ import platform
 VERSION = '2.0.6'
 
 RAYLIB_BASE = 'https://github.com/raysan5/raylib/releases/download/5.5/'
-RAYLIB_NAME = 'raylib-5.5_macos' if platform.system() == "Darwin" else 'raylib-5.5_linux_amd64'
+RAYLIB_NAME = 'raylib-5.5_win64_msvc16' #raylib-5.5_win64_mingw-w64
 
-RAYLIB_LINUX = 'raylib-5.5_linux_amd64'
-RAYLIB_LINUX_URL = RAYLIB_BASE + RAYLIB_LINUX + '.tar.gz'
 RLIGHTS_URL = 'https://raw.githubusercontent.com/raysan5/raylib/refs/heads/master/examples/shaders/rlights.h'
 
-if not os.path.exists(RAYLIB_LINUX):
-    urllib.request.urlretrieve(RAYLIB_LINUX_URL, RAYLIB_LINUX + '.tar.gz')
-    with tarfile.open(RAYLIB_LINUX + '.tar.gz', 'r') as tar_ref:
-        tar_ref.extractall()
+RAYLIB_WINDOWS = 'raylib-5.5_win64_msvc16'
+RAYLIB_WINDOWS_URL = RAYLIB_BASE + RAYLIB_WINDOWS + '.zip'
 
-    os.remove(RAYLIB_LINUX + '.tar.gz')
-    urllib.request.urlretrieve(RLIGHTS_URL, 'raylib-5.5_linux_amd64/include/rlights.h')
+if not os.path.exists(RAYLIB_WINDOWS):
+    urllib.request.urlretrieve(RAYLIB_WINDOWS_URL, RAYLIB_WINDOWS + '.zip')
+    with zipfile.ZipFile(RAYLIB_WINDOWS + '.zip', 'r') as zip_ref:
+        zip_ref.extractall()
 
-RAYLIB_MACOS = 'raylib-5.5_macos'
-RAYLIB_MACOS_URL = RAYLIB_BASE + RAYLIB_MACOS + '.tar.gz'
-if not os.path.exists(RAYLIB_MACOS):
-    urllib.request.urlretrieve(RAYLIB_MACOS_URL, RAYLIB_MACOS + '.tar.gz')
-    with tarfile.open(RAYLIB_MACOS + '.tar.gz', 'r') as tar_ref:
-        tar_ref.extractall()
-
-    os.remove(RAYLIB_MACOS + '.tar.gz')
-    urllib.request.urlretrieve(RLIGHTS_URL, 'raylib-5.5_macos/include/rlights.h')
-
+    os.remove(RAYLIB_WINDOWS + '.zip')
+    urllib.request.urlretrieve(RLIGHTS_URL, 'raylib-5.5_webassembly/include/rlights.h')
 
 RAYLIB_WASM = 'raylib-5.5_webassembly'
 RAYLIB_WASM_URL = RAYLIB_BASE + RAYLIB_WASM + '.zip'
@@ -266,29 +256,27 @@ common = cleanrl + [environments[env] for env in [
 
 extension_paths = [
     #'pufferlib/ocean/nmmo3/cy_nmmo3',
-    'pufferlib/ocean/moba/cy_moba',
+    #'pufferlib/ocean/moba/cy_moba',
     # 'pufferlib/ocean/tactical/c_tactical',
     #'pufferlib/ocean/squared/cy_squared',
     'pufferlib/ocean/snake/cy_snake',
     #'pufferlib/ocean/pong/cy_pong',
     # 'pufferlib/ocean/breakout/cy_breakout',
-    'pufferlib/ocean/cartpole/cy_cartpole',
-    'pufferlib/ocean/connect4/cy_connect4',
+    #'pufferlib/ocean/cartpole/cy_cartpole',
+    #'pufferlib/ocean/connect4/cy_connect4',
     #'pufferlib/ocean/grid/cy_grid',
-    'pufferlib/ocean/tripletriad/cy_tripletriad',
-    'pufferlib/ocean/go/cy_go',
-    'pufferlib/ocean/rware/cy_rware',
-    'pufferlib/ocean/trash_pickup/cy_trash_pickup',
-    'pufferlib/ocean/cpr/cy_cpr',
-    'pufferlib/ocean/tower_climb/cy_tower_climb',
+    #'pufferlib/ocean/tripletriad/cy_tripletriad',
+    #'pufferlib/ocean/go/cy_go',
+    #'pufferlib/ocean/rware/cy_rware',
+    #'pufferlib/ocean/trash_pickup/cy_trash_pickup',
+    #'pufferlib/ocean/cpr/cy_cpr',
+    #'pufferlib/ocean/tower_climb/cy_tower_climb',
 ]
 
 system = platform.system()
 if system == 'Darwin':
     # On macOS, use @loader_path.
     # The extension “.so” is typically in pufferlib/ocean/...,
-    # and “raylib/lib” is (maybe) two directories up from ocean/<env>.
-    # So @loader_path/../../raylib/lib is common.
     extra_compile_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION','-DPLATFORM_DESKTOP', '-O2']
     extra_link_args=['-fwrapv', '-framework', 'Cocoa', '-framework', 'OpenGL', '-framework', 'IOKit']
 
@@ -297,47 +285,30 @@ elif system == 'Linux':
     extra_link_args=['-fwrapv', '-Bsymbolic-functions', '-O2']
 
     # On Linux, $ORIGIN works
-else:
-    raise ValueError(f'Unsupported system: {system}')
 
 extensions = [Extension(
     path.replace('/', '.'),
     [path + '.pyx'],
     include_dirs=[numpy.get_include(), 'raylib/include'],
-    extra_compile_args=extra_compile_args,
-    extra_link_args=extra_link_args,
-    extra_objects=[f'{RAYLIB_NAME}/lib/libraylib.a'],
+    extra_objects=[f'{RAYLIB_NAME}/lib/raylibdll.lib'],
 ) for path in extension_paths]
 
 #c_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION', '-DPLATFORM_DESKTOP', '-O0', '-Wno-alloc-size-larger-than', '-g']
 #c_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION', '-DPLATFORM_DESKTOP', '-O2']
 #c_args += "-Wsign-compare -DNDEBUG -g -O2 -Wall -g -fstack-protector-strong -Wformat -Werror=format-security -g -fwrapv -O2 -fPIC".split()
 
-pure_c_extensions = ['squared', 'pong', 'breakout', 'enduro', 'blastar', 'grid', 'nmmo3', 'tactical']
+pure_c_extensions = ['squared']
 extensions += [
     Extension(
         f'pufferlib.ocean.{name}.binding',
         sources=[f'pufferlib/ocean/{name}/binding.c'],
         include_dirs=[numpy.get_include(), 'raylib/include'],
-        extra_compile_args=extra_compile_args,# + ['-fsanitize=address,undefined,bounds,pointer-overflow,leak'],
-        extra_link_args=extra_link_args,# + ['-fsanitize=address,undefined,bounds,pointer-overflow,leak', '-g'],
-        extra_objects=[f'{RAYLIB_NAME}/lib/libraylib.a'],
+        extra_objects=[f'{RAYLIB_NAME}/lib/raylibdll.lib'],
+        extra_link_args=['-fsanitize=address,undefined,bounds,pointer-overflow,leak', '-g'],#,
+        extra_compile_args=['-fsanitize=address,undefined,bounds,pointer-overflow,leak'],#,
     )
     for name in pure_c_extensions
 ]
-
-# Prevent Conda from injecting garbage compile flags
-from distutils.sysconfig import get_config_vars
-cfg_vars = get_config_vars()
-for key in ('CC', 'CXX', 'LDSHARED'):
-    if cfg_vars[key]:
-        cfg_vars[key] = cfg_vars[key].replace('-B /root/anaconda3/compiler_compat', '')
-        cfg_vars[key] = cfg_vars[key].replace('-pthread', '')
-        cfg_vars[key] = cfg_vars[key].replace('-fno-strict-overflow', '')
-
-for key, value in cfg_vars.items():
-    if value and '-fno-strict-overflow' in str(value):
-        cfg_vars[key] = value.replace('-fno-strict-overflow', '')
  
 setup(
     name="pufferlib",
