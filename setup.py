@@ -298,6 +298,7 @@ extensions = [Extension(
 #c_args += "-Wsign-compare -DNDEBUG -g -O2 -Wall -g -fstack-protector-strong -Wformat -Werror=format-security -g -fwrapv -O2 -fPIC".split()
 
 pure_c_extensions = ['squared']
+
 extensions += [
     Extension(
         f'pufferlib.ocean.{name}.binding',
