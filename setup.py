@@ -297,7 +297,7 @@ extensions = [Extension(
 #c_args = ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION', '-DPLATFORM_DESKTOP', '-O2']
 #c_args += "-Wsign-compare -DNDEBUG -g -O2 -Wall -g -fstack-protector-strong -Wformat -Werror=format-security -g -fwrapv -O2 -fPIC".split()
 
-pure_c_extensions = ['squared']
+pure_c_extensions = ['squared', 'cartpole']
 
 extensions += [
     Extension(
