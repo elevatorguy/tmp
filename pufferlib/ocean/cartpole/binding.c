@@ -1,5 +1,6 @@
 #include "cartpole.h"
 #define Env Cartpole
+#define NO_OPTICS
 #include "../env_binding.h"
 
 static int my_init(Env* env, PyObject* args, PyObject* kwargs) {   

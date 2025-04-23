@@ -17,6 +17,8 @@
 #define FORCE_MAG 10.0f
 #define TAU 0.02f // timestep duration
 
+#define M_PI (3.1415926535f)
+
 #define X_THRESHOLD 2.4f
 #define THETA_THRESHOLD_RADIANS (12 * 2 * M_PI / 360)
 #define MAX_STEPS 200
@@ -85,11 +87,6 @@ void free_allocated(Cartpole* env) {
     free(env->rewards);
     free(env->terminals);
 }
-
-const Color PUFF_RED = (Color){187, 0, 0, 255};
-const Color PUFF_CYAN = (Color){0, 187, 187, 255};
-const Color PUFF_WHITE = (Color){241, 241, 241, 241};
-const Color PUFF_BACKGROUND = (Color){6, 24, 24, 255};
 
 void compute_observations(Cartpole* env) {
     env->observations[0] = env->x;
