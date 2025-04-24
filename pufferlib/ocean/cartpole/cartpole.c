@@ -1,5 +1,4 @@
-// local compile/eval implemented for discrete actions only
-// eval with python demo.py --mode eval --env puffer_cartpole --eval-mode-path <path to model>
+// local compile implemented for discrete actions only
 
 #include <math.h>
 #include <stdlib.h>

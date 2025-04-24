@@ -7,7 +7,7 @@
 //TODO: more than two-dimensions
 
 //n-body or no?
-#define GRAVITY (9.81f) //seemingly of Earth - at least, partly
+#define GRAVITY (9.81f)
 
 #define MASSCART 1.0f
 #define MASSPOLE 0.1f
