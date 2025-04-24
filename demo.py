@@ -345,20 +345,23 @@ if __name__ == '__main__':
         target_metric = args['sweep']['metric']['name']
         train(args, make_env, policy_cls, rnn_cls, target_metric)
     elif args['mode'] in ('eval', 'evaluate'):
-        vec = pufferlib.vector.Serial
-        if args['vec'] == 'native': vec = pufferlib.environment.PufferEnv
-        clean_pufferl.rollout(
-            make_env,
-            args['env'],
-            policy_cls=policy_cls,
-            rnn_cls=rnn_cls,
-            agent_creator=make_policy,
-            agent_kwargs=args,
-            backend=vec,
-            model_path=args['eval_model_path'],
-            render_mode=args['render_mode'],
-            device=args['train']['device'],
-        )
+        if env_name in ('cartpole'):
+            print('Evaluation not implemented for this environment.')
+        else:
+            vec = pufferlib.vector.Serial
+            if args['vec'] == 'native': vec = pufferlib.environment.PufferEnv
+            clean_pufferl.rollout(
+                make_env,
+                args['env'],
+                policy_cls=policy_cls,
+                rnn_cls=rnn_cls,
+                agent_creator=make_policy,
+                agent_kwargs=args,
+                backend=vec,
+                model_path=args['eval_model_path'],
+                render_mode=args['render_mode'],
+                device=args['train']['device'],
+            )
     elif args['mode'] == 'sweep':
         assert args['wandb'] or args['neptune'], 'Sweeps require either wandb or neptune'
         sweep(args, env_name, make_env, policy_cls, rnn_cls)
