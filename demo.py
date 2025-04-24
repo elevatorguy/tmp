@@ -345,7 +345,7 @@ if __name__ == '__main__':
         target_metric = args['sweep']['metric']['name']
         train(args, make_env, policy_cls, rnn_cls, target_metric)
     elif args['mode'] in ('eval', 'evaluate'):
-        if env_name in ('cartpole'):
+        if env_name in ('puffer_cartpole'):
             print('Evaluation not implemented for this environment.')
         else:
             vec = pufferlib.vector.Serial
