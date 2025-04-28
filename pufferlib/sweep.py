@@ -9,6 +9,10 @@ import pufferlib
 import scipy.stats
 
 import torch
+import pyro
+from pyro.contrib import gp as gp
+from pyro.contrib.gp.kernels import Kernel
+from pyro.contrib.gp.models import GPRegression
 
 class Space:
     def __init__(self, min, max, scale, mean, is_integer=False):
