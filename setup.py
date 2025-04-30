@@ -19,6 +19,9 @@ RLIGHTS_URL = 'https://raw.githubusercontent.com/raysan5/raylib/refs/heads/maste
 RAYLIB_WINDOWS = 'raylib-5.5_win64_msvc16'
 RAYLIB_WINDOWS_URL = RAYLIB_BASE + RAYLIB_WINDOWS + '.zip'
 
+RAYLIB_LINUX = 'raylib-5.5_linux_amd64'
+RAYLIB_LINUX_URL = RAYLIB_BASE + RAYLIB_LINUX + '.tar.gz'
+
 if not os.path.exists(RAYLIB_WINDOWS):
     urllib.request.urlretrieve(RAYLIB_WINDOWS_URL, RAYLIB_WINDOWS + '.zip')
     with zipfile.ZipFile(RAYLIB_WINDOWS + '.zip', 'r') as zip_ref:

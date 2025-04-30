@@ -35,7 +35,6 @@ void demo() {
     Cartpole env = {0};
     env.is_continuous = CONTINUOUS;
     allocate(&env);
-    Client* client = make_client(&env);
     c_reset(&env);
 
     SetTargetFPS(60);
@@ -65,12 +64,6 @@ void demo() {
         episode_return += env.rewards[0];
         episode_steps++;
 
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-        c_render(&env);
-        DrawText("Evaluating policy...", 10, 160, 20, DARKGRAY);
-        EndDrawing();
-
         if (env.terminals[0]) {
             printf("Episode done. Steps: %d, Return: %.2f\n\n", episode_steps, episode_return);
             episode_steps = 0;
@@ -81,7 +74,6 @@ void demo() {
 
     free_linearlstm(net);
     free(weights);
-    close_client(client);
     free_allocated(&env);
 }
 
