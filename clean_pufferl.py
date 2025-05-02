@@ -25,6 +25,7 @@ def create(config, vecenv, policy, optimizer=None, wandb=None, neptune=None):
     random.seed(config.seed)
     np.random.seed(config.seed)
     torch.backends.cudnn.deterministic = config.torch_deterministic
+    torch.backends.cudnn.benchmark = True
     torch.set_float32_matmul_precision('high')
     if config.seed is not None:
         torch.manual_seed(config.seed)
@@ -474,8 +475,8 @@ def train(data):
             mask_block = mask_block[:, :(horizon+3)]
             v_loss = v_loss[mask_block.bool()].mean()
         elif config.clip_vloss:
-            newvalue = newvalue#.flatten()
             ret = batch.returns#.flatten()
+            newvalue = newvalue.view(ret.shape)
             v_loss_unclipped = (newvalue - ret) ** 2
             val = batch.values#.flatten()
             v_clipped = val + torch.clamp(
