@@ -25,7 +25,6 @@ import torch.distributed
 import torch.utils.cpp_extension
 
 import pufferlib
-import pufferlib.utils
 import pufferlib.pytorch
 import pufferlib.sweep
 import pufferlib.vector
@@ -110,8 +109,8 @@ class CleanPuffeRL:
             # TODO: Doesn't exist in native envs
             # TODO: Replace slice with env idx or similar
             n = vecenv.agents_per_batch
-            self.lstm_h = {slice(i*n, (i+1)*n): torch.zeros(n, policy.hidden_size, device=config.device) for i in range(total_agents//n)}
-            self.lstm_c = {slice(i*n, (i+1)*n): torch.zeros(n, policy.hidden_size, device=config.device) for i in range(total_agents//n)}
+            self.lstm_h = {i*n: torch.zeros(n, policy.hidden_size, device=config.device) for i in range(total_agents//n)}
+            self.lstm_c = {i*n: torch.zeros(n, policy.hidden_size, device=config.device) for i in range(total_agents//n)}
 
 
         # Minibatching & gradient accumulation
@@ -183,7 +182,7 @@ class CleanPuffeRL:
         self.wandb = wandb
         if neptune:
             self.neptune = init_neptune(args, env_name, id=config.run_id, tag=config.tag)
-            for k, v in pufferlib.utils.unroll_nested_dict(args):
+            for k, v in pufferlib.unroll_nested_dict(args):
                 self.neptune[k].append(v)
         elif wandb:
             self.wandb = init_wandb(args, env_name, id=config.run_id, tag=config.tag)
@@ -248,8 +247,8 @@ class CleanPuffeRL:
                 )
 
                 if config.use_rnn:
-                    state.lstm_h = self.lstm_h[env_id]
-                    state.lstm_c = self.lstm_c[env_id]
+                    state.lstm_h = self.lstm_h[env_id.start]
+                    state.lstm_c = self.lstm_c[env_id.start]
 
                 logits, value = policy(o_device, state)
                 action, logprob, _ = pufferlib.pytorch.sample_logits(logits, is_continuous=policy.is_continuous)
@@ -258,15 +257,15 @@ class CleanPuffeRL:
             profile('eval_copy', epoch)
             with torch.no_grad():
                 if config.use_rnn:
-                    self.lstm_h[env_id] = state.lstm_h
-                    self.lstm_c[env_id] = state.lstm_c
+                    self.lstm_h[env_id.start] = state.lstm_h
+                    self.lstm_c[env_id.start] = state.lstm_c
 
                 o = o if config.cpu_offload else o_device
                 actions = self.store(state, o, value, action, logprob, r, d, env_id, mask)
 
             profile('eval_misc', epoch)
             for i in info:
-                for k, v in pufferlib.utils.unroll_nested_dict(i):
+                for k, v in pufferlib.unroll_nested_dict(i):
                     if isinstance(v, np.ndarray):
                         v = v.tolist()
                     elif isinstance(v, (list, tuple)):
@@ -483,6 +482,7 @@ class CleanPuffeRL:
         elif method == 'prio':
             adv = advantages.abs().sum(axis=1)
             probs = adv**config.prio_alpha
+            probs = torch.nan_to_num(probs, 0, 0, 0)
             probs = (probs + 1e-6)/(probs.sum() + 1e-6)
             idx = torch.multinomial(probs, n)
         elif method == 'multinomial':
@@ -1014,14 +1014,16 @@ def train_wrap(args, make_env, policy_cls, rnn_cls, target_metric, min_eval_poin
     while pufferl.global_step < train_config.total_timesteps:
         pufferl.evaluate()
         logs = pufferl.train()
-        if logs is not None and target_key in logs:
+        min_sweep_steps = args['sweep']['train']['total_timesteps']['min']
+        if logs is not None and target_key in logs and pufferl.global_step >= min_sweep_steps:
             timesteps.append(logs['agent_steps'])
             scores.append(logs[target_key])
-            #costs.append(data.profile.uptime)
+            costs.append(pufferl.uptime)
 
     steps_evaluated = 0
     cost = time.time() - pufferl.start_time
     batch_size = args['train']['batch_size']
+    timesteps.append(pufferl.global_step)
     while len(pufferl.stats[target_metric]) < min_eval_points:
         stats = pufferl.evaluate()
         steps_evaluated += batch_size
@@ -1032,7 +1034,6 @@ def train_wrap(args, make_env, policy_cls, rnn_cls, target_metric, min_eval_poin
 
     scores.append(score)
     costs.append(cost)
-    timesteps.append(pufferl.global_step)
 
     pufferl.close()
     return scores, costs, timesteps

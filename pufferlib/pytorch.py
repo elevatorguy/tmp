@@ -296,6 +296,7 @@ def sample_logits(logits: Union[torch.Tensor, List[torch.Tensor]],
     probs = logits_to_probs(logits)
 
     if action is None:
+        probs = torch.nan_to_num(probs, 1e-8, 1e-8, 1e-8)
         action = torch.multinomial(probs.reshape(-1, probs.shape[-1]), 1, replacement=True)
         action = action.reshape(probs.shape[:-1])
     else:
@@ -310,6 +311,3 @@ def sample_logits(logits: Union[torch.Tensor, List[torch.Tensor]],
         return action.squeeze(0), logprob.squeeze(0), logits_entropy.squeeze(0)
 
     return action.T, logprob.sum(0), logits_entropy
-
-
-
