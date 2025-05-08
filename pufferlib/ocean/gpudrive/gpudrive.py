@@ -4,7 +4,6 @@ import json
 import struct
 
 import pufferlib
-from pufferlib.ocean.gpudrive.cy_gpudrive import CyGPUDrive, entity_dtype
 from pufferlib.ocean.gpudrive import binding
 
 class GPUDrive(pufferlib.PufferEnv):
@@ -49,7 +48,6 @@ class GPUDrive(pufferlib.PufferEnv):
             env_ids.append(env_id)
 
         self.c_envs = binding.vectorize(*env_ids)
-        pass
 
     def reset(self, seed=0):
         binding.vec_reset(self.c_envs, seed)
@@ -70,7 +68,7 @@ class GPUDrive(pufferlib.PufferEnv):
             self.terminals, self.truncations, info)
 
     def render(self):
-        binding.vec_render(self.c_envs)
+        binding.vec_render(self.c_envs, 63)
         
     def close(self):
         binding.vec_close(self.c_envs)
@@ -220,6 +218,7 @@ def save_map_binary(map_data, output_file):
             f.write(struct.pack('f', float(goal_pos.get('y', 0.0))))  # Get y value
             f.write(struct.pack('f', float(goal_pos.get('z', 0.0))))  # Get z value
             f.write(struct.pack('i', road.get('mark_as_expert', 0)))
+
 def load_map(map_name, binary_output=None):
     """Loads a JSON map and optionally saves it as binary"""
     with open(map_name, 'r') as f:
@@ -227,9 +226,6 @@ def load_map(map_name, binary_output=None):
     
     if binary_output:
         save_map_binary(map_data, binary_output)
-    
-    entities = np.zeros(1, dtype=entity_dtype())
-    return entities
 
 def process_all_maps():
     """Process all maps and save them as binaries"""
