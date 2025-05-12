@@ -606,6 +606,7 @@ void init(GPUDrive* env){
     // printf("num entities: %d\n", env->num_entities);
     env->dynamics_model = CLASSIC;
     set_means(env);
+    //printf("world mean: %f, %f\n", env->world_mean_x, env->world_mean_y);
     set_active_agents(env);
     set_start_position(env);
     // printf("Active agents: %d\n", env->active_agent_count);
@@ -1055,7 +1056,7 @@ void c_step(GPUDrive* env){
         }
         env->entities[agent_idx].collision_state = 0;
         move_dynamics(env, i, agent_idx);
-        //move_expert(env, env->actions, agent_idx);
+        // move_expert(env, env->actions, agent_idx);
         collision_check(env, agent_idx);
         if(env->entities[agent_idx].collision_state > 0 && env->goal_reached[i] == 0){
             if(env->entities[agent_idx].collision_state == VEHICLE_COLLISION){
@@ -1076,7 +1077,7 @@ void c_step(GPUDrive* env){
                 env->entities[agent_idx].goal_position_x,
                 env->entities[agent_idx].goal_position_y);
         int reached_goal = distance_to_goal < 2.0f;
-        if(reached_goal){            
+        if(reached_goal && env->goal_reached[i] == 0){            
             env->rewards[i] += 1.0f;
 	        env->goal_reached[i] = 1;
 	        env->logs[i].episode_return += 1.0f;
@@ -1352,7 +1353,6 @@ void c_render(GPUDrive* env) {
         env->client = make_client(env);
     }
     Client* client = env->client;
-
     BeginDrawing();
     Color road = (Color){35, 35, 37, 255};
     ClearBackground(road);
