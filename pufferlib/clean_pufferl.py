@@ -806,7 +806,7 @@ def experiment(vecenv, policy, args):
     vecenv.async_reset(train_config['seed'])
     i = 0
     stats = {}
-    while i < 10 and not stats:
+    while i < 25 or not stats:
         stats = pufferl.evaluate()
         i += 1
 
@@ -814,6 +814,7 @@ def experiment(vecenv, policy, args):
     if logs is not None:
         all_logs.append(logs)
 
+    pufferl.print_dashboard()
     pufferl.close()
     return all_logs
 
@@ -823,7 +824,7 @@ if __name__ == '__main__':
         ' demo options. Shows valid args for your env and policy',
         formatter_class=RichHelpFormatter, add_help=False)
     parser.add_argument('--env', '--environment', type=str,
-        default='puffer_squared', help='Name of specific environment to run')
+        default='puffer_breakout', help='Name of specific environment to run')
     parser.add_argument('--mode', type=str, default='train',
         choices='train eval sweep autotune profile'.split())
     parser.add_argument('--load-model-path', type=str, default=None,
@@ -1034,3 +1035,13 @@ if __name__ == '__main__':
 
         print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
         prof.export_chrome_trace("trace.json")
+    elif args['mode'] == 'export':
+        weights = []
+        for name, param in policy.named_parameters():
+            weights.append(param.data.cpu().numpy().flatten())
+            print(name, param.shape, param.data.cpu().numpy().ravel()[0])
+        
+        path = f'{env_name}_weights.bin'
+        weights = np.concatenate(weights)
+        weights.tofile(path)
+        print(f'Saved {len(weights)} weights to {path}')
