@@ -43,7 +43,7 @@ cython_extension_paths = [
 ]
 
 # Build raylib for your platform
-RAYLIB_BASE = 'https://github.com/raysan5/raylib/releases/download/5.5/'
+RAYLIB_URL = 'https://github.com/raysan5/raylib/releases/download/5.5/'
 system = platform.system()
 if system == 'Linux':
     RAYLIB_NAME = 'raylib-5.5_linux_amd64'
@@ -54,24 +54,20 @@ elif system == 'Windows':
 
 RLIGHTS_URL = 'https://raw.githubusercontent.com/raysan5/raylib/refs/heads/master/examples/shaders/rlights.h'
 
-def download_raylib(platform, url):
+def download_raylib(platform, ext):
     if not os.path.exists(platform):
-        if url.endswith(".zip"):
-            urllib.request.urlretrieve(url, platform + '.zip')
-            with zipfile.ZipFile(platform + '.zip', 'r') as zip_ref:
+        urllib.request.urlretrieve(RAYLIB_URL + platform + ext, platform + ext)
+        if ext == '.zip':
+            with zipfile.ZipFile(platform + ext, 'r') as zip_ref:
                 zip_ref.extractall()
-            os.remove(platform + '.zip')
         else:
-            urllib.request.urlretrieve(url, platform + '.tar.gz')
-            with tarfile.open(platform + '.tar.gz', 'r') as tar_ref:
+            with tarfile.open(platform + ext, 'r') as tar_ref:
                 tar_ref.extractall()
-            os.remove(platform + '.tar.gz')
 
+        os.remove(platform + ext)
         urllib.request.urlretrieve(RLIGHTS_URL, platform + '/include/rlights.h')
 
-RAYLIB_WASM = 'raylib-5.5_webassembly'
-RAYLIB_WASM_URL = RAYLIB_BASE + RAYLIB_WASM + '.zip'
-download_raylib(RAYLIB_WASM, RAYLIB_WASM_URL)
+download_raylib('raylib-5.5_webassembly', '.zip')
 
 # Shared compile args for all platforms
 extra_compile_args = [
@@ -125,9 +121,7 @@ if system == 'Linux':
     extra_link_args += [
         '-Bsymbolic-functions',
     ]
-    RAYLIB_LINUX = 'raylib-5.5_linux_amd64'
-    RAYLIB_LINUX_URL = RAYLIB_BASE + RAYLIB_LINUX + '.tar.gz'
-    download_raylib(RAYLIB_LINUX, RAYLIB_LINUX_URL)
+    download_raylib('raylib-5.5_linux_amd64', '.tar.gz')
 elif system == 'Darwin':
     extra_compile_args += [
     ]
@@ -136,13 +130,9 @@ elif system == 'Darwin':
         '-framework', 'OpenGL',
         '-framework', 'IOKit',
     ]
-    RAYLIB_MACOS = 'raylib-5.5_macos'
-    RAYLIB_MACOS_URL = RAYLIB_BASE + RAYLIB_MACOS + '.tar.gz'
-    download_raylib(RAYLIB_MACOS, RAYLIB_MACOS_URL)
+    download_raylib('raylib-5.5_macos', '.tar.gz')
 elif system == 'Windows':
-    RAYLIB_WINDOWS = 'raylib-5.5_win64_msvc16'
-    RAYLIB_WINDOWS_URL = RAYLIB_BASE + RAYLIB_WINDOWS + '.zip'
-    download_raylib(RAYLIB_WINDOWS, RAYLIB_WINDOWS_URL)
+    download_raylib('raylib-5.5_win64_msvc16', '.zip')
 else:
     raise ValueError(f'Unsupported system: {system}')
 
@@ -389,32 +379,17 @@ extension_kwargs = dict(
     extra_objects=[RAYLIB_A],
 )
 
-# Put C env names here. PufferLib will look for
-# pufferlib/ocean/<name>/binding.c
-c_extensions_names = [
-    'gpudrive',
-    'squared',
-    'pong',
-    'breakout',
-    'enduro',
-    'blastar',
-    'grid',
-    'nmmo3',
-    'tactical',
-    'connect4',
-    'go',
-    'cartpole'
-]
-
 # TODO: Include other C files so rebuild is auto?
+c_extension_paths = glob.glob('pufferlib/ocean/**/binding.c', recursive=True)
 c_extensions = [
     Extension(
         path.rstrip('.c').replace('/', '.'),
         sources=[path],
         **extension_kwargs,
     )
-    for path in glob.glob('pufferlib/ocean/**/binding.c', recursive=True)
+    for path in c_extension_paths
 ]
+c_extension_paths = [os.path.join(*path.split('/')[:-1]) for path in c_extension_paths]
 
 cython_extensions = cythonize([
     Extension(
@@ -426,15 +401,19 @@ cython_extensions = cythonize([
 ])
 
 # Check if CUDA compiler is available. You need cuda dev, not just runtime.
+torch_sources = [
+    "pufferlib/extensions/pufferlib.cpp",
+]
 if shutil.which("nvcc"):
     extension = CUDAExtension
+    torch_sources.append("pufferlib/extensions/cuda/pufferlib.cu")
 else:
     extension = CppExtension
 
 torch_extensions = [
    extension(
         "pufferlib._C",
-        ["pufferlib/extensions/pufferlib.cpp", "pufferlib/extensions/cuda/pufferlib.cu"],
+        torch_sources,
         extra_compile_args = {
             "cxx": cxx_args,
             "nvcc": nvcc_args,
@@ -448,7 +427,7 @@ setup(
     "PufferAI's library of RL tools and utilities",
     long_description_content_type="text/markdown",
     version=VERSION,
-    packages=find_namespace_packages() + find_packages(),
+    packages=find_namespace_packages() + find_packages() + c_extension_paths + ['pufferlib/extensions'],
     package_data={
         "pufferlib": [RAYLIB_NAME + '/lib/libraylib.a']
     },
@@ -491,7 +470,7 @@ setup(
     keywords=["Puffer", "AI", "RL", "Reinforcement Learning"],
     entry_points={
         'console_scripts': [
-            'pufferl = pufferlib.clean_pufferl:main',
+            'puffer = pufferlib.clean_pufferl:puffer',
         ],
     },
     classifiers=[
