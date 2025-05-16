@@ -727,7 +727,7 @@ class NoLogger:
     def __init__(self, args):
         self.run_id = str(int(random.random() * 1e8))
 
-    def log(self, logs):
+    def log(self, logs, step):
         pass
 
     def close(self, model_path):
@@ -823,11 +823,12 @@ def train(args=None, vecenv=None, policy=None, logger=None):
 
         if logs is not None:
             logger.log(logs, pufferl.global_step)
-            all_logs.append(logs)
+            if pufferl.global_step > 0.20*train_config['total_timesteps']:
+                all_logs.append(logs)
 
     i = 0
     stats = {}
-    vecenv.async_reset(train_config['seed'])
+    #vecenv.async_reset(train_config['seed'])
     while i < 100 or not stats:
         stats = pufferl.evaluate()
         i += 1
