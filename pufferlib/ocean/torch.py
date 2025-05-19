@@ -89,6 +89,62 @@ class NMMO3(nn.Module):
         value = self.value_fn(flat_hidden)
         return action, value
 
+class Terraform(nn.Module):
+    def __init__(self, env, cnn_channels=32, hidden_size=128, **kwargs):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.is_continuous = False
+
+        self.net_2d = nn.Sequential(
+            pufferlib.pytorch.layer_init(
+                nn.Conv2d(1, cnn_channels, 5, stride=3)),
+            nn.ReLU(),
+            pufferlib.pytorch.layer_init(
+                nn.Conv2d(cnn_channels, cnn_channels, 3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+        )
+        self.net_1d = nn.Sequential(
+            pufferlib.pytorch.layer_init(
+                nn.Linear(4, hidden_size)),
+            nn.Flatten(),
+        )
+        self.proj = nn.Sequential(
+            pufferlib.pytorch.layer_init(nn.Linear(hidden_size + cnn_channels, hidden_size)),
+            nn.ReLU(),
+        )
+        #self.actor = nn.ModuleList([
+        #    pufferlib.pytorch.layer_init(nn.Linear(hidden_size, n), std=0.01)
+        #    for n in env.single_action_space.nvec])
+        self.atn_dim = env.single_action_space.nvec.tolist()
+        self.actor = pufferlib.pytorch.layer_init(nn.Linear(hidden_size, sum(self.atn_dim)), std=0.01)
+        self.value = pufferlib.pytorch.layer_init(
+                nn.Linear(hidden_size, 1), std=1)
+
+    def forward(self, observations, state=None):
+        hidden = self.encode_observations(observations, state)
+        actions, value = self.decode_actions(hidden)
+        return actions, value
+
+    def forward_train(self, x, state=None):
+        return self.forward(x, state)
+
+    def encode_observations(self, observations, state=None):
+        obs_2d = observations[:, :121].reshape(-1, 11, 11).unsqueeze(1).float()# / 255.0
+        obs_1d = observations[:, 121:].reshape(-1, 4).float() / 255.0
+        hidden_2d = self.net_2d(obs_2d)
+        hidden_1d = self.net_1d(obs_1d)
+        hidden = torch.cat([hidden_2d, hidden_1d], dim=1)
+        return self.proj(hidden)
+
+    def decode_actions(self, hidden):
+        action = self.actor(hidden)
+        action = torch.split(action, self.atn_dim, dim=1)
+        #action = [head(hidden) for head in self.actor]
+        value = self.value(hidden)
+        return action, value
+
+
 class Snake(nn.Module):
     def __init__(self, env, cnn_channels=32, hidden_size=128,
             use_p3o=False, p3o_horizon=32, use_diayn=False, diayn_skills=8, **kwargs):

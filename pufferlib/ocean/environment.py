@@ -133,6 +133,7 @@ MAKE_FUNCTIONS = {
     'squared': 'Squared',
     'pysquared': 'PySquared',
     'connect4': 'Connect4',
+    'terraform': 'Terraform',
     'tripletriad': 'TripleTriad',
     'tactical': 'Tactical',
     'go': 'Go',

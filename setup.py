@@ -1,6 +1,7 @@
 #TODO:
 # --no-build-isolation for 5090
 # Make c and torch compile at the same time
+# CUDA_VISIBLE_DEVICES=None LD_PRELOAD=$(gcc -print-file-name=libasan.so) python3.12 -m pufferlib.clean_pufferl eval --train.device cpu
 
 from setuptools import find_packages, find_namespace_packages, setup, Extension
 from Cython.Build import cythonize
@@ -35,7 +36,6 @@ DEBUG = os.getenv("DEBUG", "0") == "1"
 cython_extension_paths = [
     'pufferlib/ocean/moba/cy_moba',
     'pufferlib/ocean/snake/cy_snake',
-    'pufferlib/ocean/tripletriad/cy_tripletriad',
     'pufferlib/ocean/rware/cy_rware',
     'pufferlib/ocean/trash_pickup/cy_trash_pickup',
     'pufferlib/ocean/cpr/cy_cpr',
@@ -87,9 +87,11 @@ if DEBUG:
         '-O0',
         '-g',
         '-fsanitize=address,undefined,bounds,pointer-overflow,leak',
+        '-fno-omit-frame-pointer',
     ]
     extra_link_args += [
         '-g',
+        '-fsanitize=address,undefined,bounds,pointer-overflow,leak',
     ]
     cxx_args += [
         '-O0',
@@ -355,6 +357,14 @@ common = cleanrl + [environments[env] for env in [
 # Extensions 
 class BuildExt(build_ext):
     def run(self):
+        # Propagate any build_ext options (e.g., --inplace, --force) to subcommands
+        build_ext_opts = self.distribution.command_options.get('build_ext', {})
+        if build_ext_opts:
+            # Copy flags so build_torch and build_c respect inplace/force
+            self.distribution.command_options['build_torch'] = build_ext_opts.copy()
+            self.distribution.command_options['build_c'] = build_ext_opts.copy()
+
+        # Run the torch and C builds (which will handle copying when inplace is set)
         self.run_command('build_torch')
         self.run_command('build_c')
 
