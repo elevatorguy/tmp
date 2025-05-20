@@ -720,6 +720,16 @@ def downsample_linear(arr, m):
     x_new = np.linspace(0, 1, m)  # New indices normalized
     return np.interp(x_new, x_old, arr)
 
+def downsample_alt(arr, m):
+    last = arr[-1]
+    arr = arr[:-1]
+    arr = np.array(arr)
+    n = len(arr)
+    n = (n//m)*m
+    arr = arr[-n:]
+    downsampled = arr.reshape(-1, m).mean(axis=1)
+    return np.concatenate([downsampled, [last]])
+
 class NoLogger:
     def __init__(self, args):
         self.run_id = str(int(random.random() * 1e8))
@@ -914,9 +924,9 @@ def sweep(args=None):
         total_timesteps = args['train']['total_timesteps']
         all_logs = train(args)
         all_logs = [e for e in all_logs if target_key in e]
-        scores = downsample_linear([log[target_key] for log in all_logs], 10)
-        costs = downsample_linear([log['uptime'] for log in all_logs], 10)
-        timesteps = downsample_linear([log['agent_steps'] for log in all_logs], 10)
+        scores = downsample_alt([log[target_key] for log in all_logs], 10)
+        costs = downsample_alt([log['uptime'] for log in all_logs], 10)
+        timesteps = downsample_alt([log['agent_steps'] for log in all_logs], 10)
 
         for score, cost, timestep in zip(scores, costs, timesteps):
             args['train']['total_timesteps'] = timestep
@@ -1065,7 +1075,7 @@ def load_config():
                 value = p[section][key]
 
             fmt = f'--{key}' if section == 'base' else f'--{section}.{key}'
-            parser.add_argument(fmt.replace('_', '-'), default=value)
+            parser.add_argument(fmt.replace('_', '-'), default=value, type=type(value))
 
     parser.add_argument('-h', '--help', default=argparse.SUPPRESS,
         action='help', help='Show this help message and exit')

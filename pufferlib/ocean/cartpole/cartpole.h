@@ -88,6 +88,9 @@ void free_allocated(Cartpole* env) {
     free(env->terminals);
 }
 
+void c_close(Cartpole* env) {
+}
+
 void compute_observations(Cartpole* env) {
     env->observations[0] = env->x;
     env->observations[1] = env->x_dot;
