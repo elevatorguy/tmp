@@ -136,6 +136,7 @@ MAKE_FUNCTIONS = {
     'terraform': 'Terraform',
     'tripletriad': 'TripleTriad',
     'tactical': 'Tactical',
+    'target': 'Target',
     'go': 'Go',
     'rware': 'Rware',
     'trash_pickup': 'TrashPickupEnv',
