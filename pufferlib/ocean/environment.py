@@ -160,5 +160,3 @@ def env_creator(name='squared', *args, **kwargs):
         return getattr(module, MAKE_FUNCTIONS[name])
     except ModuleNotFoundError:
         return MAKE_FUNCTIONS[name]
-
-
