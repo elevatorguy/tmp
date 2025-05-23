@@ -128,6 +128,7 @@ MAKE_FUNCTIONS = {
     'enduro': 'Enduro',
     'cartpole': 'Cartpole',
     'moba': 'Moba',
+    'boids': 'Boids',
     'nmmo3': 'NMMO3',
     'snake': 'Snake',
     'squared': 'Squared',
@@ -145,6 +146,7 @@ MAKE_FUNCTIONS = {
     'cpr': 'PyCPR',
     'impulse_wars': 'ImpulseWars',
     'gpudrive': 'GPUDrive',
+    'pacman': 'Pacman',
     'spaces': make_spaces,
     'multiagent': make_multiagent,
 }
