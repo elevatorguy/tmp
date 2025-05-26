@@ -704,7 +704,7 @@ class Profile:
 
 class Utilization(Thread):
     def __init__(self, delay=1, maxlen=20):
-        super().__init__(daemon=True)
+        super().__init__()
         self.cpu_mem = deque([0], maxlen=maxlen)
         self.cpu_util = deque([0], maxlen=maxlen)
         self.gpu_util = deque([0], maxlen=maxlen)
@@ -731,14 +731,10 @@ class Utilization(Thread):
     def stop(self):
         self.stopped = True
 
-# TODO: Is there a simpler interp
-def downsample_linear(arr, m):
-    n = len(arr)
-    x_old = np.linspace(0, 1, n)  # Original indices normalized
-    x_new = np.linspace(0, 1, m)  # New indices normalized
-    return np.interp(x_new, x_old, arr)
-
 def downsample_alt(arr, m):
+    if len(arr) < m:
+        return arr
+
     last = arr[-1]
     arr = arr[:-1]
     arr = np.array(arr)
@@ -858,7 +854,6 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
 
     logs = pufferl.mean_and_log()
     if logs is not None:
-        pufferl.logger.log(logs, pufferl.global_step)
         all_logs.append(logs)
 
     pufferl.print_dashboard()
@@ -867,7 +862,7 @@ def train(env_name, args=None, vecenv=None, policy=None, logger=None):
     return all_logs
 
 def eval(env_name, args=None, vecenv=None, policy=None):
-    args = args or load_config()
+    args = args or load_config(env_name)
     args['vec'] = dict(backend='Serial', num_envs=1)
     vecenv = vecenv or load_env(env_name, args)
     if not isinstance(vecenv, pufferlib.vector.Serial):
@@ -920,7 +915,7 @@ def eval(env_name, args=None, vecenv=None, policy=None):
             frames.append('Done')
 
 def sweep(args=None, env_name=None):
-    args = args or load_config()
+    args = args or load_config(env_name)
     if not args['wandb'] and not args['neptune']:
         raise pufferlib.APIUsageError('Sweeps require either wandb or neptune')
 
@@ -939,11 +934,11 @@ def sweep(args=None, env_name=None):
         torch.manual_seed(seed)
         sweep.suggest(args)
         total_timesteps = args['train']['total_timesteps']
-        all_logs = train(args, env_name=env_name)
+        all_logs = train(env_name, args=args)
         all_logs = [e for e in all_logs if target_key in e]
-        scores = downsample_alt([log[target_key] for log in all_logs], 10)
-        costs = downsample_alt([log['uptime'] for log in all_logs], 10)
-        timesteps = downsample_alt([log['agent_steps'] for log in all_logs], 10)
+        scores = downsample_alt([log[target_key] for log in all_logs], 5)
+        costs = downsample_alt([log['uptime'] for log in all_logs], 5)
+        timesteps = downsample_alt([log['agent_steps'] for log in all_logs], 5)
 
         for score, cost, timestep in zip(scores, costs, timesteps):
             args['train']['total_timesteps'] = timestep
