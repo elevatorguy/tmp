@@ -12,7 +12,7 @@
 #define LOG_BUFFER_SIZE 1024
 
 #define SUN_GRAVITY (274)
-#define EARTH_GRAVITY (9.81f)
+#define EARTH_GRAVITY (9.80665f)
 //reference: https://nssdc.gsfc.nasa.gov/planetary/factsheet/planet_table_ratio.html
 #define MERCURY_GRAVITY (0.378*EARTH_GRAVITY)
 #define VENUS_GRAVITY (0.907*EARTH_GRAVITY)
