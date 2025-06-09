@@ -11,6 +11,19 @@
 //
 #define LOG_BUFFER_SIZE 1024
 
+#define SUN_GRAVITY (274)
+#define EARTH_GRAVITY (9.81f)
+//reference: https://nssdc.gsfc.nasa.gov/planetary/factsheet/planet_table_ratio.html
+#define MERCURY_GRAVITY (0.378*EARTH_GRAVITY)
+#define VENUS_GRAVITY (0.907*EARTH_GRAVITY)
+#define MOON_GRAVITY (0.166*EARTH_GRAVITY)
+#define MARS_GRAVITY (0.377*EARTH_GRAVITY)
+#define JUPITER_GRAVITY (2.36*EARTH_GRAVITY)
+#define SATURN_GRAVITY (0.916*EARTH_GRAVITY)
+#define URANUS_GRAVITY (0.889*EARTH_GRAVITY)
+#define NEPTUNE_GRAVITY (1.12*EARTH_GRAVITY)
+#define PLUTO_GRAVITY (0.071*EARTH_GRAVITY)
+
 typedef struct Log Log;
 struct Log {
     float episode_return;
@@ -76,7 +89,7 @@ typedef struct Entity
 const float SCALE = 30;
 const float VIEWPORT_W = 1000;
 const float VIEWPORT_H = 800;
-const float GRAVITY = 9.8f;
+const float GRAVITY = EARTH_GRAVITY;
 const float W = VIEWPORT_W / SCALE;
 const float H = VIEWPORT_H / SCALE;
 
