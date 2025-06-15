@@ -403,8 +403,7 @@ extension_kwargs = dict(
 c_extension_paths = glob.glob('pufferlib/ocean/**/binding.c', recursive=True)
 c_extensions = [
     Extension(
-        #path.rstrip('.c').replace('/', '.'),
-        "pufferlib.ocean.target.binding",
+        path.rstrip('.c').replace('\\', '.').replace('/', '.'),
         sources=[path],
         #export_symbols=[ path.rstrip('.c').replace('/', '.').replace('\\','_') ],
         **extension_kwargs
