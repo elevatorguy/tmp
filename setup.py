@@ -139,6 +139,7 @@ elif system == 'Darwin':
     download_raylib('raylib-5.5_macos', '.tar.gz')
 elif system == 'Windows':
     download_raylib('raylib-5.5_win64_msvc16', '.zip')
+    print(f'Experimental system: {system}')
 else:
     raise ValueError(f'Unsupported system: {system}')
 
