@@ -431,6 +431,19 @@ torch_extensions = [
     ),
 ]
 
+# Prevent Conda from injecting garbage compile flags
+from distutils.sysconfig import get_config_vars
+cfg_vars = get_config_vars()
+for key in ('CC', 'CXX', 'LDSHARED'):
+    if cfg_vars[key]:
+        cfg_vars[key] = cfg_vars[key].replace('-B /root/anaconda3/compiler_compat', '')
+        cfg_vars[key] = cfg_vars[key].replace('-pthread', '')
+        cfg_vars[key] = cfg_vars[key].replace('-fno-strict-overflow', '')
+
+for key, value in cfg_vars.items():
+    if value and '-fno-strict-overflow' in str(value):
+        cfg_vars[key] = value.replace('-fno-strict-overflow', '')
+
 setup(
     name="pufferlib",
     description="PufferAI Library"
