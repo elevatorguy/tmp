@@ -4,11 +4,9 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
-//TODO: more than two-dimensions
+#include "raylib.h"
 
-//n-body or no?
-#define GRAVITY (9.81f)
-
+#define GRAVITY 9.8f
 #define MASSCART 1.0f
 #define MASSPOLE 0.1f
 #define TOTAL_MASS (MASSPOLE + MASSCART)
@@ -16,8 +14,6 @@
 #define POLEMASS_LENGTH (MASSPOLE * LENGTH)
 #define FORCE_MAG 10.0f
 #define TAU 0.02f // timestep duration
-
-#define M_PI (3.1415926535f)
 
 #define X_THRESHOLD 2.4f
 #define THETA_THRESHOLD_RADIANS (12 * 2 * M_PI / 360)
@@ -37,6 +33,10 @@ struct Log {
     float score;
 };
 
+typedef struct Client Client;
+struct Client {
+};
+
 typedef struct Cartpole Cartpole;
 struct Cartpole {
     float* observations;
@@ -45,6 +45,7 @@ struct Cartpole {
     unsigned char* terminals;
     unsigned char* truncations;
     Log log;
+    Client* client;
     float x;
     float x_dot;
     float theta;
@@ -91,6 +92,49 @@ void free_allocated(Cartpole* env) {
 void c_close(Cartpole* env) {
 }
 
+const Color PUFF_RED = (Color){187, 0, 0, 255};
+const Color PUFF_CYAN = (Color){0, 187, 187, 255};
+const Color PUFF_WHITE = (Color){241, 241, 241, 241};
+const Color PUFF_BACKGROUND = (Color){6, 24, 24, 255};
+
+Client* make_client(Cartpole* env) {
+    Client* client = (Client*)calloc(1, sizeof(Client));
+    InitWindow(WIDTH, HEIGHT, "puffer Cartpole");
+    SetTargetFPS(60);
+    return client;
+}
+
+void close_client(Client* client) {
+    CloseWindow();
+    free(client);
+}
+
+void c_render(Cartpole* env) {
+    if (IsKeyDown(KEY_ESCAPE))
+        exit(0);
+    if (IsKeyPressed(KEY_TAB))
+        ToggleFullscreen();
+
+    if (env->client == NULL) {
+        env->client = make_client(env);
+    }
+
+    BeginDrawing();
+    ClearBackground(PUFF_BACKGROUND);
+    DrawLine(0, HEIGHT / 1.5, WIDTH, HEIGHT / 1.5, PUFF_CYAN);
+    float cart_x = WIDTH / 2 + env->x * SCALE;
+    float cart_y = HEIGHT / 1.6;
+    DrawRectangle((int)(cart_x - 20), (int)(cart_y - 10), 40, 20, PUFF_CYAN);
+    float pole_length = 2.0f * 0.5f * SCALE;
+    float pole_x2 = cart_x + sinf(env->theta) * pole_length;
+    float pole_y2 = cart_y - cosf(env->theta) * pole_length;
+    DrawLineEx((Vector2){cart_x, cart_y}, (Vector2){pole_x2, pole_y2}, 5, PUFF_RED);
+    DrawText(TextFormat("Steps: %i", env->tick), 10, 10, 20, PUFF_WHITE);
+    DrawText(TextFormat("Cart Position: %.2f", env->x), 10, 40, 20, PUFF_WHITE);
+    DrawText(TextFormat("Pole Angle: %.2f", env->theta * 180.0f / M_PI), 10, 70, 20, PUFF_WHITE);
+    EndDrawing();
+}
+
 void compute_observations(Cartpole* env) {
     env->observations[0] = env->x;
     env->observations[1] = env->x_dot;
@@ -105,11 +149,11 @@ void c_reset(Cartpole* env) {
     env->theta = ((float)rand() / (float)RAND_MAX) * 0.08f - 0.04f;
     env->theta_dot = ((float)rand() / (float)RAND_MAX) * 0.08f - 0.04f;
     env->tick = 0;
-
+    
     compute_observations(env);
 }
 
-void c_step(Cartpole* env) {
+void c_step(Cartpole* env) {  
     // float force = 0.0;
     // if (env->continuous) {
     //     force = env->actions[0] * FORCE_MAG;
@@ -122,7 +166,7 @@ void c_step(Cartpole* env) {
     /* ===== runtime sanity check –– delete after debugging ===== */
     if (!isfinite(a) || a < -1.0001f || a > 1.0001f) {
         fprintf(stderr,
-                "[ACTION] tick=%d  raw=%.6f\n",
+                "[BAD ACTION] tick=%d  raw=%.6f\n",
                 env->tick, a);
         fflush(stderr);
     }
@@ -149,7 +193,7 @@ void c_step(Cartpole* env) {
     env->theta_dot += TAU * thetaacc;
 
     env->tick += 1;
-
+    
     bool terminated = env->x < -X_THRESHOLD || env->x > X_THRESHOLD ||
                 env->theta < -THETA_THRESHOLD_RADIANS || env->theta > THETA_THRESHOLD_RADIANS;
     bool truncated = env->tick >= MAX_STEPS;
