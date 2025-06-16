@@ -237,7 +237,7 @@ class Multiprocessing:
  
     def __init__(self, env_creators, env_args, env_kwargs,
             num_envs, num_workers=None, batch_size=None,
-            zero_copy=True, sync_traj=True, seed=0, **kwargs):
+            zero_copy=True, sync_traj=True, overwork=False, seed=0, **kwargs):
         if batch_size is None:
             batch_size = num_envs
         if num_workers is None:
@@ -245,10 +245,11 @@ class Multiprocessing:
 
         import psutil
         cpu_cores = psutil.cpu_count(logical=False)
-        if num_workers > cpu_cores:
+        if num_workers > cpu_cores and not overwork:
             raise pufferlib.APIUsageError(' '.join([
                 f'num_workers ({num_workers}) > hardware cores ({cpu_cores}) is disallowed by default.',
                 'PufferLib multiprocessing is heavily optimized for 1 process per hardware core.',
+                'If you really want to do this, set overwork=True (--vec-overwork in our demo.py).',
             ]))
 
         num_batches = num_envs / batch_size
@@ -699,7 +700,7 @@ def make(env_creator_or_creators, env_args=None, env_kwargs=None, backend=Puffer
 
     # Sanity check args
     for k in kwargs:
-        if k not in ['num_workers', 'batch_size', 'zero_copy', 'backend']:
+        if k not in ['num_workers', 'batch_size', 'zero_copy', 'overwork', 'backend']:
             raise pufferlib.APIUsageError(f'Invalid argument: {k}')
 
     # TODO: First step action space check
