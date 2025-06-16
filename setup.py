@@ -388,7 +388,6 @@ class TorchBuildExt(cpp_extension.BuildExtension):
         self.extensions = [e for e in self.extensions if e.name == "pufferlib._C"]
         super().run()
 
-RAYLIB_NAME = 'raylib-5.5_win64_msvc16' if system == "Windows" else 'raylib-5.5_linux_amd64'
 RAYLIB_A = f'{RAYLIB_NAME}/lib/raylibdll.lib' if system == "Windows" else f'{RAYLIB_NAME}/lib/libraylib.a'
 
 INCLUDE = [numpy.get_include(), 'raylib/include']
@@ -405,7 +404,6 @@ c_extensions = [
     Extension(
         path.rstrip('.c').replace('\\', '.').replace('/', '.'),
         sources=[path],
-        #export_symbols=[ path.rstrip('.c').replace('/', '.').replace('\\','_') ],
         **extension_kwargs
     )
     for path in c_extension_paths
