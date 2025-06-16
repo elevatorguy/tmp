@@ -764,7 +764,7 @@ class Utilization(Thread):
         while not self.stopped:
             self.cpu_util.append(100*psutil.cpu_percent()/psutil.cpu_count())
             mem = psutil.virtual_memory()
-            self.cpu_mem.append(100*mem.used/mem.total)
+            self.cpu_mem.append(100*mem.active/mem.total)
             if torch.cuda.is_available():
                 # Monitoring in distributed crashes nvml
                 if torch.distributed.is_initialized():
