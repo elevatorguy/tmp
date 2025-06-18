@@ -13,8 +13,8 @@
 #include "raylib.h"
 
 // Width and height for visualisation window
-#define WIDTH 1080
-#define HEIGHT 720
+#define WIDTH 800
+#define HEIGHT 600
 
 // Simulation properties
 #define GRID_SIZE 10.0f
@@ -191,13 +191,15 @@ void c_reset(Drone *env) {
     env->score = 0;
     env->episodic_return = 0.0f;
 
+    //env->state = 0; //0 : pre-reset, 1 : resetting, 2: post-reset
+
     env->n_targets = 5;
     env->moves_left = 1000;
 
     env->move_target.x = rndf(-9, 9);
     env->move_target.y = rndf(-9, 9);
     env->move_target.z = rndf(-9, 9);
-
+    
     env->pos.x = rndf(-9, 9);
     env->pos.y = rndf(-9, 9);
     env->pos.z = rndf(-9, 9);
@@ -449,6 +451,13 @@ void c_render(Drone *env) {
 
     DrawCubeWires((Vector3){0.0f, 0.0f, 0.0f}, GRID_SIZE * 2.0f,
                   GRID_SIZE * 2.0f, GRID_SIZE * 2.0f, WHITE);
+
+    /*if(env->state == 0) { //FADE-IN
+        
+    }
+    if(env->state == 2) { //FADE-OUT
+        
+    }*/
 
     DrawSphere(
         (Vector3){env->move_target.x, env->move_target.y, env->move_target.z},
