@@ -12,9 +12,10 @@
 
 #include "raylib.h"
 
-// Width and height for visualisation window
+// Visualisation properties
 #define WIDTH 1080
 #define HEIGHT 720
+#define TRAIL_LENGTH 50
 
 // Simulation properties
 #define GRID_SIZE 10.0f
@@ -121,6 +122,11 @@ struct Client {
     float camera_elevation;
     bool is_dragging;
     Vector2 last_mouse_pos;
+
+    // Trailing path buffer (for rendering only)
+    Vec3 trail[TRAIL_LENGTH];
+    int trail_index;
+    int trail_count;
 };
 
 typedef struct Drone Drone;
@@ -136,7 +142,7 @@ struct Drone {
     unsigned int score;
     float episodic_return;
 
-    int n_targets;
+    unsigned int n_targets;
     int moves_left;
 
     Vec3 pos;   // global position (x, y, z)
@@ -156,10 +162,10 @@ void init(Drone *env) {
 }
 
 void add_log(Drone *env) {
-    env->log.score = env->score;
-    env->log.episode_return = env->episodic_return;
-    env->log.episode_length = env->tick;
-    env->log.perf = 0.0f;
+    env->log.score += env->score;
+    env->log.episode_return += env->episodic_return;
+    env->log.episode_length += env->tick;
+    env->log.perf += (float)env->score / (float)env->n_targets;
     env->log.n += 1.0f;
 }
 
@@ -256,11 +262,10 @@ void c_step(Drone *env) {
     Vec3 accel = {F_world.x / MASS, F_world.y / MASS,
                   (F_world.z / MASS) - GRAVITY};
 
-    // integrates quaternion
+    // from the definition of q dot
     Quat omega_q = {0.0f, env->omega.x, env->omega.y, env->omega.z};
     Quat q_dot = quat_mul(env->quat, omega_q);
 
-    // from the definition of q dot
     q_dot.w *= 0.5f;
     q_dot.x *= 0.5f;
     q_dot.y *= 0.5f;
@@ -312,7 +317,6 @@ void c_step(Drone *env) {
     if (norm3(env->vec_to_target) < 1.5f) {
         env->rewards[0] += 1;
         env->episodic_return += 1;
-        env->n_targets -= 1;
         env->score++;
 
         env->move_target.x = rndf(-9, 9);
@@ -321,7 +325,7 @@ void c_step(Drone *env) {
     }
 
     env->moves_left -= 1;
-    if (env->moves_left == 0 || env->n_targets == 0) {
+    if (env->moves_left == 0 || env->n_targets == env->score) {
         env->terminals[0] = 1;
         add_log(env);
         c_reset(env);
@@ -397,6 +401,7 @@ Client *make_client(Drone *env) {
     client->width = WIDTH;
     client->height = HEIGHT;
 
+    SetConfigFlags(FLAG_MSAA_4X_HINT);  // antialiasing
     InitWindow(WIDTH, HEIGHT, "PufferLib Drone");
     SetTargetFPS(60);
 
@@ -417,6 +422,13 @@ Client *make_client(Drone *env) {
     client->camera.projection = CAMERA_PERSPECTIVE;
 
     update_camera_position(client);
+
+    // Initialize trail buffer
+    client->trail_index = 0;
+    client->trail_count = 0;
+    for (int i = 0; i < TRAIL_LENGTH; i++) {
+        client->trail[i] = env->pos;
+    }
 
     return client;
 }
@@ -442,10 +454,15 @@ void c_render(Drone *env) {
 
     handle_camera_controls(env->client);
 
+    Client *client = env->client;
+    client->trail[client->trail_index] = env->pos;
+    client->trail_index = (client->trail_index + 1) % TRAIL_LENGTH;
+    if (client->trail_count < TRAIL_LENGTH) client->trail_count++;
+
     BeginDrawing();
     ClearBackground((Color){6, 24, 24, 255});
 
-    BeginMode3D(env->client->camera);
+    BeginMode3D(client->camera);
 
     DrawCubeWires((Vector3){0.0f, 0.0f, 0.0f}, GRID_SIZE * 2.0f,
                   GRID_SIZE * 2.0f, GRID_SIZE * 2.0f, WHITE);
@@ -512,6 +529,18 @@ void c_render(Drone *env) {
         (Vector3){env->pos.x, env->pos.y, env->pos.z},
         (Vector3){env->move_target.x, env->move_target.y, env->move_target.z},
         ColorAlpha(BLUE, 0.3f));
+
+    // Draw trailing path
+    for (int i = 1; i < client->trail_count; i++) {
+        int idx0 = (client->trail_index + i) % TRAIL_LENGTH;
+        int idx1 = (client->trail_index + i - 1) % TRAIL_LENGTH;
+        float alpha = (float)i / client->trail_count * 0.8f; // fade out
+        Color trail_color = ColorAlpha(YELLOW, alpha);
+        DrawLine3D(
+            (Vector3){client->trail[idx0].x, client->trail[idx0].y, client->trail[idx0].z},
+            (Vector3){client->trail[idx1].x, client->trail[idx1].y, client->trail[idx1].z},
+            trail_color);
+    }
 
     EndMode3D();
 
