@@ -1,10 +1,31 @@
+#ifdef UEFI
+unsigned int x = 0;
+unsigned int y = 0;
+unsigned int text_fg_color = 0xFFFFFFFF;
+unsigned int text_bg_color = 0xFF000000;
+#include "uefi_compat.h"
+typedef struct Color {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+} Color;
+char text1[255];
+#else
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
 #include <string.h>
 #include "raylib.h"
+#include <stdbool.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#endif
 
 #define NOOP 0
 #define LEFT 1
@@ -17,6 +38,8 @@
 #define BRICK_INDEX_SIDEWALL_COLLISION -3
 #define BRICK_INDEX_BACKWALL_COLLISION -2
 #define BRICK_INDEX_PADDLE_COLLISION -1
+
+bool console_signal = false;
 
 typedef struct Log {
     float perf;
@@ -32,8 +55,10 @@ typedef struct Client {
     float paddle_width;
     float paddle_height;
     float ball_width;
-    float ball_height;    
+    float ball_height;
+#ifndef UEFI
     Texture2D ball;
+#endif
 } Client;
 
 typedef struct Breakout {
@@ -49,6 +74,10 @@ typedef struct Breakout {
     float paddle_y;
     float ball_x;
     float ball_y;
+    float paddle_x_prev;
+    float paddle_y_prev;
+    float ball_x_prev;
+    float ball_y_prev;
     float ball_vx;
     float ball_vy;
     float* brick_x;
@@ -75,6 +104,7 @@ typedef struct Breakout {
     int num_balls;
     int max_score;
     int half_max_score;
+    int score_at_last_ball;
     int tick;
     int frameskip;
     unsigned char hit_brick;
@@ -88,10 +118,39 @@ struct CollisionInfo {
     float overlap;
     float x;
     float y;
-    float vx; 
+    float vx;
     float vy;
     int brick_index;
 };
+
+void generate_brick_positions(Breakout*);
+void init(Breakout* env);
+void allocate(Breakout* env);
+void c_close(Breakout* env);
+void free_allocated(Breakout* env);
+void add_log(Breakout* env);
+void compute_observations(Breakout* env);
+static inline bool calc_vline_collision(float xw, float yw, float hw, float x, float y, float vx, float vy, float h, CollisionInfo* col);
+static inline bool calc_hline_collision(float xw, float yw, float ww, float x, float y, float vx, float vy, float w, CollisionInfo* col);
+static inline void calc_brick_collision(Breakout* env, int idx, CollisionInfo* collision_info);
+static inline int column_index(Breakout* env, float x);
+static inline int row_index(Breakout* env, float y);
+void calc_all_brick_collisions(Breakout* env, CollisionInfo* collision_info);
+bool calc_paddle_ball_collisions(Breakout* env, CollisionInfo* collision_info);
+void calc_all_wall_collisions(Breakout* env, CollisionInfo* collision_info);
+void check_wall_bounds(Breakout* env);
+void destroy_brick(Breakout* env, int brick_idx);
+bool handle_collisions(Breakout* env);
+void reset_round(Breakout* env);
+void c_reset(Breakout* env);
+void step_frame(Breakout* env, float action);
+void c_step(Breakout* env);
+Client* make_client(Breakout* env);
+void close_client(Client* client);
+#ifdef UEFI
+extern void DrawRectangle(int x, int y, int w, int h, Color color);
+#endif
+void c_render(Breakout* env);
 
 void generate_brick_positions(Breakout* env) {
     env->half_max_score=0;
@@ -149,6 +208,8 @@ void add_log(Breakout* env) {
 }
 
 void compute_observations(Breakout* env) {
+    if (!env->observations || !env->brick_states || env->num_bricks <= 0) return;
+    
     env->observations[0] = env->paddle_x / env->width;
     env->observations[1] = env->paddle_y / env->height;
     env->observations[2] = env->ball_x / env->width;
@@ -159,7 +220,9 @@ void compute_observations(Breakout* env) {
     env->observations[7] = env->score / 864.0f;
     env->observations[8] = env->num_balls / 5.0f;
     env->observations[9] = env->paddle_width / (2.0f * HALF_PADDLE_WIDTH);
-    memcpy(env->observations + 10, env->brick_states, sizeof(float) * env->num_bricks);
+    if (env->observations + 10 + env->num_bricks <= env->observations + 11 + env->num_bricks) {
+        memcpy(env->observations + 10, env->brick_states, sizeof(float) * env->num_bricks);
+    }
 }
 
 // Collision of a stationary vertical line segment (xw,yw) to (xw,yw+hw)
@@ -173,7 +236,7 @@ static inline bool calc_vline_collision(float xw, float yw, float hw, float x,
 
     // Collision finds the smallest time of collision with the greatest overlap
     // between the ball and the wall.
-    if (overlap_new > 0.0f && t_new > 0.0f && t_new <= 1.0f  && 
+    if (overlap_new > 0.0f && t_new > 0.0f && t_new <= 1.0f  &&
         (t_new < col->t || (t_new == col->t && overlap_new > col->overlap))) {
         col->t = t_new;
         col->overlap = overlap_new;
@@ -193,7 +256,7 @@ static inline bool calc_hline_collision(float xw, float yw, float ww,
     float overlap_new = rightmost - leftmost;
 
     // Collision finds the smallest time of collision with the greatest overlap between the ball and the wall.
-    if (overlap_new > 0.0f && t_new > 0.0f && t_new <= 1.0f && 
+    if (overlap_new > 0.0f && t_new > 0.0f && t_new <= 1.0f &&
         (t_new < col->t || (t_new == col->t && overlap_new > col->overlap))) {
         col->t = t_new;
         col->overlap = overlap_new;
@@ -205,7 +268,7 @@ static inline bool calc_hline_collision(float xw, float yw, float ww,
     }
     return false;
 }
-static inline void calc_brick_collision(Breakout* env, int idx, 
+static inline void calc_brick_collision(Breakout* env, int idx,
         CollisionInfo* collision_info) {
     bool collision = false;
     // Brick left wall collides with ball right side
@@ -404,7 +467,7 @@ bool handle_collisions(Breakout* env) {
     calc_all_brick_collisions(env, &collision_info);
     calc_all_wall_collisions(env, &collision_info);
     calc_paddle_ball_collisions(env, &collision_info);
-    if (collision_info.brick_index != BRICK_INDEX_PADDLE_COLLISION 
+    if (collision_info.brick_index != BRICK_INDEX_PADDLE_COLLISION
             && collision_info.t <= 1.0f) {
         env->ball_x = collision_info.x;
         env->ball_y = collision_info.y;
@@ -440,6 +503,7 @@ void reset_round(Breakout* env) {
 void c_reset(Breakout* env) {
     env->score = 0;
     env->num_balls = 5;
+    env->score_at_last_ball = 0;
     for (int i = 0; i < env->num_bricks; i++) {
         env->brick_states[i] = 0.0;
     }
@@ -456,10 +520,11 @@ void step_frame(Breakout* env, float action) {
 
         env->ball_vy = cosf(direction) * env->ball_speed * TICK_RATE;
         env->ball_vx = sinf(direction) * env->ball_speed * TICK_RATE;
-        if (rand_r(&env->rng) % 2 == 0) {
+        /*if(rand_r(&env->rng) % 2 == 0) {
             env->ball_vx = -env->ball_vx;
-        }
-    }   
+        }*/
+        env->ball_vx = -env->ball_vx;
+    }
      else if (action == LEFT) {
         act = -1.0;
     } else if (action == RIGHT) {
@@ -468,6 +533,8 @@ void step_frame(Breakout* env, float action) {
     if (env->continuous){
         act = action;
     }
+    env->paddle_x_prev = env->paddle_x;
+    env->paddle_y_prev = env->paddle_y;
     env->paddle_x += act * env->paddle_speed * TICK_RATE;
     if (env->paddle_x <= 0){
         env->paddle_x = fmaxf(0, env->paddle_x);
@@ -475,7 +542,10 @@ void step_frame(Breakout* env, float action) {
         env->paddle_x = fminf(env->width - env->paddle_width, env->paddle_x);
     }
 
-    //Handle collisions. 
+    env->ball_x_prev = env->ball_x;
+    env->ball_y_prev = env->ball_y;
+
+    //Handle collisions.
     //Regular timestepping is done only if there are no collisions.
     if(!handle_collisions(env)){
         env->ball_x += env->ball_vx;
@@ -484,6 +554,7 @@ void step_frame(Breakout* env, float action) {
 
     if (env->ball_y >= env->paddle_y + env->paddle_height) {
         env->num_balls -= 1;
+        env->score_at_last_ball = env->score;
         reset_round(env);
     }
     if (env->num_balls < 0 || env->score == env->max_score) {
@@ -498,6 +569,12 @@ void c_step(Breakout* env) {
     env->rewards[0] = 0.0;
 
     float action = env->actions[0];
+    
+    // Bounds check action before using
+    if (action != LEFT && action != NOOP && action != RIGHT) {
+        action = NOOP;
+    }
+    
     for (int i = 0; i < env->frameskip; i++) {
         env->tick += 1;
         step_frame(env, action);
@@ -506,7 +583,7 @@ void c_step(Breakout* env) {
     compute_observations(env);
 }
 
-Color BRICK_COLORS[6] = {RED, ORANGE, YELLOW, GREEN, SKYBLUE, BLUE};
+//Color BRICK_COLORS[6] = {RED, ORANGE, YELLOW, GREEN, SKYBLUE, BLUE};
 
 Client* make_client(Breakout* env) {
     Client* client = (Client*)calloc(1, sizeof(Client));
@@ -517,15 +594,20 @@ Client* make_client(Breakout* env) {
     client->ball_width = env->ball_width;
     client->ball_height = env->ball_height;
 
-    InitWindow(env->width, env->height, "PufferLib Breakout");
+#ifndef UEFI
+    InitWindow(env->width, env->height, "file");
     SetTargetFPS(60 / env->frameskip);
 
     client->ball = LoadTexture("resources/shared/puffers_128.png");
+#endif
     return client;
 }
 
 void close_client(Client* client) {
+#ifndef UEFI
     CloseWindow();
+#endif
+    console_signal = true;
     free(client);
 }
 
@@ -536,6 +618,7 @@ void c_render(Breakout* env) {
 
     Client* client = env->client;
 
+#ifndef UEFI
     if (IsKeyDown(KEY_ESCAPE)) {
         exit(0);
     }
@@ -544,12 +627,11 @@ void c_render(Breakout* env) {
     }
 
     BeginDrawing();
-    ClearBackground((Color){6, 24, 24, 255});
+    ClearBackground((Color){6,24,24,255});
 
     DrawRectangle(env->paddle_x, env->paddle_y,
         env->paddle_width, env->paddle_height, (Color){0, 255, 255, 255});
 
-    // Draw ball
     DrawTexturePro(
         client->ball,
         (Rectangle){
@@ -566,8 +648,25 @@ void c_render(Breakout* env) {
         0,
         WHITE
     );
+#else
+    // Clear and draw paddle
+    DrawRectangle((int)env->paddle_x_prev, (int)env->paddle_y_prev, env->paddle_width, env->paddle_height, (Color){6,24,24,255});
+    DrawRectangle((int)env->paddle_x, (int)env->paddle_y, env->paddle_width, env->paddle_height, (Color){0,255,255,255});
+    // Clear and draw ball
+    DrawRectangle((int)env->ball_x_prev, (int)env->ball_y_prev, env->ball_width, env->ball_height, (Color){6,24,24,255});
+    DrawRectangle((int)env->ball_x, (int)env->ball_y, env->ball_width, env->ball_height, (Color){0xFF,0xFF,0xFF,0xFF});
+#endif
 
-    for (int row = 0; row < env->brick_rows; row++) {
+    // Brick colors by row: RED, ORANGE, YELLOW, GREEN, SKYBLUE, BLUE
+    static const Color BRICK_COLORS[6] = {
+        (Color){0xCC,0x22,0x22,0xFF},
+        (Color){0xFF,0x88,0x00,0xFF},
+        (Color){0xFF,0xFF,0x00,0xFF},
+        (Color){0x00,0xFF,0x00,0xFF},
+        (Color){0x00,0xCC,0xFF,0xFF},
+        (Color){0x44,0x44,0xFF,0xFF}
+    };
+    for(int row = 0; row < env->brick_rows; row++) {
         for (int col = 0; col < env->brick_cols; col++) {
             int brick_idx = row * env->brick_cols + col;
             if (env->brick_states[brick_idx] == 1) {
@@ -579,10 +678,13 @@ void c_render(Breakout* env) {
             DrawRectangle(x, y, env->brick_width, env->brick_height, brick_color);
         }
     }
-
+#ifndef UEFI
     DrawText(TextFormat("Score: %i", env->score), 10, 10, 20, WHITE);
     DrawText(TextFormat("Balls: %i", env->num_balls), client->width - 80, 10, 20, WHITE);
     EndDrawing();
-
-    //PlaySound(client->sound);
+#else
+    x = 0;
+    y = 0;
+    sprintf(text1,"score: %u, balls: %u   ", env->score, env->num_balls);
+#endif
 }

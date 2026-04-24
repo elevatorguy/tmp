@@ -1,8 +1,12 @@
+#ifdef UEFI
+#include "uefi_compat.h"
+#else
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#endif
 
 typedef struct {
     void* data;
@@ -58,6 +62,17 @@ Weights* load_weights(const char* filename) {
         perror("Error reading file");
     }
     weights->size = num_weights + 7;
+    weights->idx = 0;
+    return weights;
+}
+
+// Load weights from embedded binary data (for UEFI)
+Weights* load_weightsEmbedded(const unsigned char* data, size_t len) {
+    size_t num_weights = len / sizeof(float);
+    Weights* weights = calloc(1, sizeof(Weights) + num_weights*sizeof(float));
+    weights->data = (float*)(weights + 1);
+    memcpy(weights->data, data, len);
+    weights->size = num_weights;
     weights->idx = 0;
     return weights;
 }
@@ -370,21 +385,30 @@ void _argmax_multidiscrete(float* input, float* output, int batch_size, int logi
 void _softmax_multidiscrete(float* input, float* output, int batch_size, int logit_sizes[], int num_actions) {
     int atn_sum = 0;
     for (int a = 0; a < num_actions; a++) atn_sum += logit_sizes[a];
+    int input_size = batch_size * (atn_sum + 1);
+    int output_size = batch_size * num_actions;
+
     for (int b = 0; b < batch_size; b++) {
         // +1 skips the value head fused into the decoder output
         int in_adr = b * (atn_sum + 1);
         for (int a = 0; a < num_actions; a++) {
             int out_adr = b*num_actions + a;
+            if (out_adr >= output_size) break;
             float logit_exp_sum = 0;
             int num_action_types = logit_sizes[a];
             for (int i = 0; i < num_action_types; i++) {
+                if (in_adr + i >= input_size) break;
                 logit_exp_sum += expf(input[in_adr + i]);
             }
+
             float prob = rand() / (float)RAND_MAX;
+
             float logit_prob = 0;
             output[out_adr] = 0.0f;
             for (int i = 0; i < num_action_types; i++) {
+                if (in_adr + i >= input_size) break;
                 logit_prob += expf(input[in_adr + i]) / logit_exp_sum;
+
                 if (prob < logit_prob) {
                     output[out_adr] = (float)i;
                     break;

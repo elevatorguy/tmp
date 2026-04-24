@@ -28,6 +28,7 @@ for arg in "$@"; do
         --web)   MODE=web ;;
         --profile) MODE=profile ;;
         --cpu)   MODE=cpu; PRECISION="-DPRECISION_FLOAT" ;;
+        --uefi-kernel) MODE=uefi-kernel ;;
         *) echo "Error: unknown argument '$arg'" && exit 1 ;;
     esac
 done
@@ -146,6 +147,28 @@ if [ "$MODE" = "local" ] || [ "$MODE" = "fast" ]; then
     echo "Compiling $ENV..."
     ${CC:-clang} "${CLANG_OPT[@]}" "${FLAGS[@]}"
     echo "Built: ./$OUTPUT_NAME"
+    exit 0
+elif [ "$MODE" = "uefi-kernel" ]; then
+    xxd -i resources/breakout/breakout_weights.bin > build/breakout_weights.h
+    echo "Generated weights header: build/breakout_weights.h"
+
+    clang -c -o breakout.o \
+        -I/opt/puffer/ocean/breakout \
+        -I/opt/puffer/src \
+        -I/boot/efi-dev/efi_c/include \
+        -include /opt/puffer/build/breakout_weights.h \
+        "$SRC_DIR/$ENV.c" \
+        -O2 -Wall -DNDEBUG \
+        -DUEFI \
+        -ffreestanding -fno-stack-protector -fno-common -fno-builtin \
+        -mno-red-zone -fPIE \
+        -std=c17
+
+    # Link as PIE executable with entry point at .kernel section
+    gcc -pie -e kmain -o breakout.elf breakout.o -lm
+    rm -f breakout.o
+
+    echo "Built: ./breakout.elf"
     exit 0
 elif [ "$MODE" = "web" ]; then
     mkdir -p "build/web/$ENV"
