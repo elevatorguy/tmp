@@ -153,10 +153,10 @@ elif [ "$MODE" = "uefi-kernel" ]; then
     echo "Generated weights header: build/breakout_weights.h"
 
     clang -c -o breakout.o \
-        -I/opt/puffer/ocean/breakout \
-        -I/opt/puffer/src \
-        -I/boot/efi-dev/efi_c/include \
-        -include /opt/puffer/build/breakout_weights.h \
+        -I$SRC_DIR \
+        -Isrc \
+        -Iexternal/efi/efi_c/include \
+        -include build/breakout_weights.h \
         "$SRC_DIR/$ENV.c" \
         -O2 -Wall -DNDEBUG \
         -DUEFI \

@@ -1,3 +1,4 @@
-[submodule "vendor/efi"]
-    path = vendor/efi
-    url = https://github.com/queso-fuego/uefi-dev
+[submodule "external/efi"]
+	path = external/efi
+	url = https://github.com/elevatorguy/file
+	branch = branch18
