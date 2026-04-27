@@ -34,8 +34,8 @@ noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
     UINTN pitch = kargs->gop_mode.Info->PixelsPerScanLine;
     UINTN w = kargs->gop_mode.Info->HorizontalResolution;
 
-    Bitmap_Font* font1 = &kargs->fonts[0];
-    Bitmap_Font* font2 = &kargs->fonts[1];
+    font1 = &kargs->fonts[0];
+    font2 = &kargs->fonts[1];
 
     if (fb_base != 0 && w > 0) {
         volatile UINT32 *test_fb = (volatile UINT32*)fb_base;
@@ -97,8 +97,6 @@ noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
             frame = (frame + 1) % 4;
             c_step(&env);
             c_render(&env);
-            print_string(text1, font1);
-            //print_string("testing font2", font2);
         }
         free_puffernet(net);
         free(weights);

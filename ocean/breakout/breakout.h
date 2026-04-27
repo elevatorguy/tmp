@@ -2,8 +2,10 @@
 unsigned int x = 0;
 unsigned int y = 0;
 unsigned int text_fg_color = 0xFFFFFFFF;
-unsigned int text_bg_color = 0xFF000000;
+unsigned int text_bg_color = 0xFF061717;
 #include "uefi_compat.h"
+Bitmap_Font* font1;
+Bitmap_Font* font2;
 typedef struct Color {
     unsigned char r;
     unsigned char g;
@@ -686,5 +688,7 @@ void c_render(Breakout* env) {
     x = 0;
     y = 0;
     sprintf(text1,"score: %u, balls: %u   ", env->score, env->num_balls);
+    print_string(text1, font1);
+    //print_string("testing font2", font2);
 #endif
 }
