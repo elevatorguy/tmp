@@ -149,26 +149,26 @@ if [ "$MODE" = "local" ] || [ "$MODE" = "fast" ]; then
     echo "Built: ./$OUTPUT_NAME"
     exit 0
 elif [ "$MODE" = "uefi-kernel" ]; then
-    xxd -i resources/breakout/breakout_weights.bin > build/breakout_weights.h
-    echo "Generated weights header: build/breakout_weights.h"
+    xxd -i resources/$ENV/"$ENV"_weights.bin > build/"$ENV"_weights.h
+    echo "Generated weights header: build/${ENV}_weights.h"
 
-    clang -c -o breakout.o \
+    clang -c -o $ENV.o \
         -I$SRC_DIR \
         -Isrc \
         -Iexternal/efi/efi_c/include \
-        -include build/breakout_weights.h \
+        -include build/"${ENV}"_weights.h \
         "$SRC_DIR/$ENV.c" \
         -O2 -Wall -DNDEBUG \
         -DUEFI \
         -ffreestanding -fno-stack-protector -fno-common -fno-builtin \
-        -mno-red-zone -fPIE \
+        -mno-red-zone \
         -std=c17
 
     # Link as PIE executable with entry point at .kernel section
-    gcc -pie -e kmain -o breakout.elf breakout.o -lm
-    rm -f breakout.o
+    gcc -pie -e kmain -o $ENV.elf $ENV.o -lm
+    rm -f $ENV.o
 
-    echo "Built: ./breakout.elf"
+    echo "Built: ./$ENV.elf"
     exit 0
 elif [ "$MODE" = "web" ]; then
     mkdir -p "build/web/$ENV"
