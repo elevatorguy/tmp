@@ -43,65 +43,72 @@ noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
         fb = (uint32_t*)fb_base;
         xres = w;
         yres = h;
+        bool duration = true;
+        while(duration) {
+            extern unsigned char resources_breakout_breakout_weights_bin[];
+            extern unsigned int resources_breakout_breakout_weights_bin_len;
+            Weights* weights = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
 
-        extern unsigned char resources_breakout_breakout_weights_bin[];
-        extern unsigned int resources_breakout_breakout_weights_bin_len;
-        Weights* weights = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
+            int logit_sizes[1] = {3};
+            PufferNet* net = make_puffernet(weights, 1, 118, 64, 2, logit_sizes, 1);
 
-        int logit_sizes[1] = {3};
-        PufferNet* net = make_puffernet(weights, 1, 118, 64, 2, logit_sizes, 1);
+            // Setup game
+            Breakout env = {
+                .frameskip = 1,
+                .width = 576,
+                .height = 330,
+                .initial_paddle_width = 62,
+                .paddle_width = 62,
+                .paddle_height = 8,
+                .ball_width = 32,
+                .ball_height = 32,
+                .brick_width = 32,
+                .brick_height = 12,
+                .brick_rows = 6,
+                .brick_cols = 18,
+                .initial_ball_speed = 256,
+                .max_ball_speed = 448,
+                .paddle_speed = 620,
+                .continuous = 0,
+            };
+            allocate(&env);
 
-        // Setup game
-        Breakout env = {
-            .frameskip = 1,
-            .width = 576,
-            .height = 330,
-            .initial_paddle_width = 62,
-            .paddle_width = 62,
-            .paddle_height = 8,
-            .ball_width = 32,
-            .ball_height = 32,
-            .brick_width = 32,
-            .brick_height = 12,
-            .brick_rows = 6,
-            .brick_cols = 18,
-            .initial_ball_speed = 256,
-            .max_ball_speed = 448,
-            .paddle_speed = 620,
-            .continuous = 0,
-        };
-        allocate(&env);
+            env.client = make_client(&env);
 
-        env.client = make_client(&env);
+            c_reset(&env);
 
-        c_reset(&env);
+            for (int y = 0; y < yres; y++)
+                for (int x = 0; x < xres; x++)
+                    fb[y*xres + x] = 0xFF061717;
 
-        for (y = 0; y < yres; y++)
-            for (x = 0; x < xres; x++)
-                fb[y*xres + x] = 0xFF061717;
+            int frame = 0;
+            while (!console_signal) {
+                if (frame % 4 == 0) {
+                    // Neural network forward pass
+                    linear(net->encoder, env.observations);
+                    mingru(net->mingru, net->encoder->output);
+                    linear(net->decoder, net->mingru->output);
+                    if (net->is_continuous) {
+                        _gaussian_mean(net->decoder->output, env.actions, net->num_agents, net->num_actions);
+                    } else {
+                        // Use deterministic argmax for testing (no rand)
+                        //argmax_multidiscrete(net->multidiscrete, net->decoder->output, env.actions);
+                        softmax_multidiscrete(net->multidiscrete, net->decoder->output, env.actions);
+                    }
+                }
 
-        int frame = 0;
-        while (!console_signal) {
-            if (frame % 4 == 0) {
-                // Neural network forward pass
-                linear(net->encoder, env.observations);
-                mingru(net->mingru, net->encoder->output);
-                linear(net->decoder, net->mingru->output);
-                if (net->is_continuous) {
-                    _gaussian_mean(net->decoder->output, env.actions, net->num_agents, net->num_actions);
-                } else {
-                    softmax_multidiscrete(net->multidiscrete, net->decoder->output, env.actions);
+                frame++;
+                c_step(&env);
+                c_render(&env);
+                if(frame > (int)10000) {
+                    break;
                 }
             }
-
-            frame = (frame + 1) % 4;
-            c_step(&env);
-            c_render(&env);
+            free_puffernet(net);
+            free(weights);
+            free_allocated(&env);
+            close_client(env.client);
         }
-        free_puffernet(net);
-        free(weights);
-        free_allocated(&env);
-        close_client(env.client);
     }
     for (y = 0; y < yres; y++)
     for (x = 0; x < xres; x++)
@@ -143,6 +150,12 @@ void demo() {
     while (!WindowShouldClose()) {
         // User can take control of the paddle
         if (IsKeyDown(KEY_LEFT_SHIFT)) {
+            if (IsKeyDown(KEY_SPACE)) {
+                env.barrier = true;
+            }
+            else {
+                env.barrier = false;
+            }
             if(env.continuous) {
                 float move = GetMouseWheelMove();
                 float clamped_wheel = fmaxf(-1.0f, fminf(1.0f, move));
@@ -157,7 +170,6 @@ void demo() {
     while (!console_signal) {
         if (frame % 4 == 0) {
 #endif
-            // Apply frameskip outside the env for smoother rendering
             forward_puffernet(net, env.observations, env.actions);
         }
 

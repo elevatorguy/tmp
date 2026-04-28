@@ -13,12 +13,15 @@ typedef struct Color {
     unsigned char a;
 } Color;
 char text1[255];
+char text2[255];
 #else
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <limits.h>
 #include <string.h>
 #include "raylib.h"
@@ -112,6 +115,8 @@ typedef struct Breakout {
     unsigned char hit_brick;
     int continuous;
     unsigned int rng;
+    bool barrier;
+    unsigned char barrier_timer;
 } Breakout;
 
 typedef struct CollisionInfo CollisionInfo;
@@ -177,6 +182,9 @@ void init(Breakout* env) {
     env->brick_states = (float*)calloc(env->num_bricks, sizeof(float));
     env->num_balls = -1;
     generate_brick_positions(env);
+    env->barrier = false;
+    env->barrier_timer = 10;
+    console_signal = false;
 }
 
 void allocate(Breakout* env) {
@@ -500,6 +508,13 @@ void reset_round(Breakout* env) {
 
     env->ball_vx = 0.0;
     env->ball_vy = 0.0;
+    if(env->barrier_timer > 0) {
+        env->barrier_timer--;
+    }
+    else {
+        //env->barrier = !(env->barrier);
+        env->barrier_timer = 10;
+    }
 }
 
 void c_reset(Breakout* env) {
@@ -554,6 +569,17 @@ void step_frame(Breakout* env, float action) {
         env->ball_y += env->ball_vy;
     }
 
+    if(env->barrier == true) {
+        int line_y = (int)env->paddle_y - 50;
+        if (env->ball_y > 0 && env->ball_y <= line_y && env->ball_y + env->ball_height > line_y) {
+            env->ball_vy = -env->ball_vy;
+            //what if env->ball_vy becomes zero?
+        }
+        /*if(env->tick > 3000) {
+            env->barrier = false;
+        }*/
+    }
+
     if (env->ball_y >= env->paddle_y + env->paddle_height) {
         env->num_balls -= 1;
         env->score_at_last_ball = env->score;
@@ -575,8 +601,14 @@ void c_step(Breakout* env) {
     // Bounds check action before using
     if (action != LEFT && action != NOOP && action != RIGHT) {
         action = NOOP;
+#ifdef UEFI
+        env->barrier = true;
     }
-    
+    else {
+        env->barrier = false;
+#endif
+    }
+
     for (int i = 0; i < env->frameskip; i++) {
         env->tick += 1;
         step_frame(env, action);
@@ -659,6 +691,17 @@ void c_render(Breakout* env) {
     DrawRectangle((int)env->ball_x, (int)env->ball_y, env->ball_width, env->ball_height, (Color){0xFF,0xFF,0xFF,0xFF});
 #endif
 
+    // Dotted line 50px above paddle (yellow = passthrough, orange = bounce)
+    int line_y = (int)env->paddle_y - 50;
+    for (int lx = 0; lx < (int)env->width; lx += 10) {
+        if(env->barrier) {
+            DrawRectangle(lx, line_y, 5, 2, (Color){0xFF,0xFF,0x00,0xFF});
+        }
+        else {
+            DrawRectangle(lx, line_y, 5, 2, (Color){0x77,0x77,0x00,0xFF});
+        }
+    }
+
     // Brick colors by row: RED, ORANGE, YELLOW, GREEN, SKYBLUE, BLUE
     static const Color BRICK_COLORS[6] = {
         (Color){0xCC,0x22,0x22,0xFF},
@@ -671,11 +714,12 @@ void c_render(Breakout* env) {
     for(int row = 0; row < env->brick_rows; row++) {
         for (int col = 0; col < env->brick_cols; col++) {
             int brick_idx = row * env->brick_cols + col;
-            if (env->brick_states[brick_idx] == 1) {
-                continue;
-            }
             int x = env->brick_x[brick_idx];
             int y = env->brick_y[brick_idx];
+            if (env->brick_states[brick_idx] == 1) {
+                DrawRectangle(x, y, env->brick_width, env->brick_height, (Color){6,24,24,255});
+                continue;
+            }
             Color brick_color = BRICK_COLORS[row];
             DrawRectangle(x, y, env->brick_width, env->brick_height, brick_color);
         }
@@ -685,9 +729,20 @@ void c_render(Breakout* env) {
     DrawText(TextFormat("Balls: %i", env->num_balls), client->width - 80, 10, 20, WHITE);
     EndDrawing();
 #else
+    int destroyed = 0;
+    for (int i = 0; i < env->num_bricks; i++) {
+        if (env->brick_states[i] == 1) destroyed++;
+    }
+
+    //sprintf(text2, "a0:%d bx:%d by:%d px:%d py:%d\n", (int)env->actions[0], (int)(env->observations[2]*100), (int)(env->observations[3]*100), (int)(env->observations[0]*100), (int)(env->observations[1]*100));
+    //y = env->height;
+    //x = 0;
+    //print_string(text2, font1); //secondary
+    sprintf(text1,"sc:%u ff:%d dst:%d t:%d xy:%d %d       \n",
+        env->score, env->balls_fired, destroyed,
+        (int)env->tick, (int)env->ball_x, (int)env->ball_y);
     x = 0;
     y = 0;
-    sprintf(text1,"score: %u, balls: %u   ", env->score, env->num_balls);
     print_string(text1, font1);
     //print_string("testing font2", font2);
 #endif
