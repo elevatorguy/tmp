@@ -117,6 +117,8 @@ typedef struct Breakout {
     unsigned int rng;
     bool barrier;
     unsigned char barrier_timer;
+    int origin_x;
+    int origin_y;
 } Breakout;
 
 typedef struct CollisionInfo CollisionInfo;
@@ -684,21 +686,21 @@ void c_render(Breakout* env) {
     );
 #else
     // Clear and draw paddle
-    DrawRectangle((int)env->paddle_x_prev, (int)env->paddle_y_prev, env->paddle_width, env->paddle_height, (Color){6,24,24,255});
-    DrawRectangle((int)env->paddle_x, (int)env->paddle_y, env->paddle_width, env->paddle_height, (Color){0,255,255,255});
+    DrawRectangle(env->origin_x + (int)env->paddle_x_prev, env->origin_y + (int)env->paddle_y_prev, env->paddle_width, env->paddle_height, (Color){6,24,24,255});
+    DrawRectangle(env->origin_x + (int)env->paddle_x, env->origin_y + (int)env->paddle_y, env->paddle_width, env->paddle_height, (Color){0,255,255,255});
     // Clear and draw ball
-    DrawRectangle((int)env->ball_x_prev, (int)env->ball_y_prev, env->ball_width, env->ball_height, (Color){6,24,24,255});
-    DrawRectangle((int)env->ball_x, (int)env->ball_y, env->ball_width, env->ball_height, (Color){0xFF,0xFF,0xFF,0xFF});
+    DrawRectangle(env->origin_x + (int)env->ball_x_prev, env->origin_y + (int)env->ball_y_prev, env->ball_width, env->ball_height, (Color){6,24,24,255});
+    DrawRectangle(env->origin_x + (int)env->ball_x, env->origin_y + (int)env->ball_y, env->ball_width, env->ball_height, (Color){0xFF,0xFF,0xFF,0xFF});
 #endif
 
     // Dotted line 50px above paddle (yellow = passthrough, orange = bounce)
     int line_y = (int)env->paddle_y - 50;
     for (int lx = 0; lx < (int)env->width; lx += 10) {
         if(env->barrier) {
-            DrawRectangle(lx, line_y, 5, 2, (Color){0xFF,0xFF,0x00,0xFF});
+            DrawRectangle(env->origin_x + lx, env->origin_y + line_y, 5, 2, (Color){0xFF,0xFF,0x00,0xFF});
         }
         else {
-            DrawRectangle(lx, line_y, 5, 2, (Color){0x77,0x77,0x00,0xFF});
+            DrawRectangle(env->origin_x + lx, env->origin_y + line_y, 5, 2, (Color){0x77,0x77,0x00,0xFF});
         }
     }
 
@@ -717,11 +719,11 @@ void c_render(Breakout* env) {
             int x = env->brick_x[brick_idx];
             int y = env->brick_y[brick_idx];
             if (env->brick_states[brick_idx] == 1) {
-                DrawRectangle(x, y, env->brick_width, env->brick_height, (Color){6,24,24,255});
+                DrawRectangle(env->origin_x + x, env->origin_y + y, env->brick_width, env->brick_height, (Color){6,24,24,255});
                 continue;
             }
             Color brick_color = BRICK_COLORS[row];
-            DrawRectangle(x, y, env->brick_width, env->brick_height, brick_color);
+            DrawRectangle(env->origin_x + x, env->origin_y + y, env->brick_width, env->brick_height, brick_color);
         }
     }
 #ifndef UEFI
@@ -741,8 +743,8 @@ void c_render(Breakout* env) {
     sprintf(text1,"sc:%u ff:%d dst:%d t:%d xy:%d %d       \n",
         env->score, env->balls_fired, destroyed,
         (int)env->tick, (int)env->ball_x, (int)env->ball_y);
-    x = 0;
-    y = 0;
+    x = env->origin_x / 2;
+    y = env->origin_y;
     print_string(text1, font1);
     //print_string("testing font2", font2);
 #endif

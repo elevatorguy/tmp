@@ -47,35 +47,59 @@ noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
         while(duration) {
             extern unsigned char resources_breakout_breakout_weights_bin[];
             extern unsigned int resources_breakout_breakout_weights_bin_len;
-            Weights* weights = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
+            Weights* weights1 = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
+            Weights* weights2 = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
+            Weights* weights3 = load_weightsEmbedded(resources_breakout_breakout_weights_bin, resources_breakout_breakout_weights_bin_len);
 
             int logit_sizes[1] = {3};
-            PufferNet* net = make_puffernet(weights, 1, 118, 64, 2, logit_sizes, 1);
+            PufferNet* net = make_puffernet(weights1, 1, 118, 64, 2, logit_sizes, 1);
+            PufferNet* net2 = make_puffernet(weights2, 1, 118, 64, 2, logit_sizes, 1);
+            PufferNet* net3 = make_puffernet(weights3, 1, 118, 64, 2, logit_sizes, 1);
 
-            // Setup game
-            Breakout env = {
+            Breakout env1 = {
                 .frameskip = 1,
-                .width = 576,
-                .height = 330,
-                .initial_paddle_width = 62,
-                .paddle_width = 62,
-                .paddle_height = 8,
-                .ball_width = 32,
-                .ball_height = 32,
-                .brick_width = 32,
-                .brick_height = 12,
-                .brick_rows = 6,
-                .brick_cols = 18,
-                .initial_ball_speed = 256,
-                .max_ball_speed = 448,
-                .paddle_speed = 620,
-                .continuous = 0,
+                .width = 576, .height = 330,
+                .initial_paddle_width = 62, .paddle_width = 62, .paddle_height = 8,
+                .ball_width = 32, .ball_height = 32,
+                .brick_width = 32, .brick_height = 12,
+                .brick_rows = 6, .brick_cols = 18,
+                .initial_ball_speed = 256, .max_ball_speed = 448,
+                .paddle_speed = 620, .continuous = 0,
+                .origin_x = 0, .origin_y = 0,
             };
-            allocate(&env);
+            Breakout env2 = {
+                .frameskip = 1,
+                .width = 576, .height = 330,
+                .initial_paddle_width = 62, .paddle_width = 62, .paddle_height = 8,
+                .ball_width = 32, .ball_height = 32,
+                .brick_width = 32, .brick_height = 12,
+                .brick_rows = 6, .brick_cols = 18,
+                .initial_ball_speed = 256, .max_ball_speed = 448,
+                .paddle_speed = 620, .continuous = 0,
+                .origin_x = 606, .origin_y = 0,
+            };
+            Breakout env3 = {
+                .frameskip = 1,
+                .width = 576, .height = 330,
+                .initial_paddle_width = 62, .paddle_width = 62, .paddle_height = 8,
+                .ball_width = 32, .ball_height = 32,
+                .brick_width = 32, .brick_height = 12,
+                .brick_rows = 6, .brick_cols = 18,
+                .initial_ball_speed = 256, .max_ball_speed = 448,
+                .paddle_speed = 620, .continuous = 0,
+                .origin_x = 1212, .origin_y = 0,
+            };
+            allocate(&env1);
+            allocate(&env2);
+            allocate(&env3);
 
-            env.client = make_client(&env);
+            env1.client = make_client(&env1);
+            env2.client = make_client(&env2);
+            env3.client = make_client(&env3);
 
-            c_reset(&env);
+            c_reset(&env1);
+            c_reset(&env2);
+            c_reset(&env3);
 
             for (int y = 0; y < yres; y++)
                 for (int x = 0; x < xres; x++)
@@ -84,30 +108,34 @@ noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
             int frame = 0;
             while (!console_signal) {
                 if (frame % 4 == 0) {
-                    // Neural network forward pass
-                    linear(net->encoder, env.observations);
-                    mingru(net->mingru, net->encoder->output);
-                    linear(net->decoder, net->mingru->output);
-                    if (net->is_continuous) {
-                        _gaussian_mean(net->decoder->output, env.actions, net->num_agents, net->num_actions);
-                    } else {
-                        // Use deterministic argmax for testing (no rand)
-                        //argmax_multidiscrete(net->multidiscrete, net->decoder->output, env.actions);
-                        softmax_multidiscrete(net->multidiscrete, net->decoder->output, env.actions);
-                    }
+                    forward_puffernet(net, env1.observations, env1.actions);
+                    forward_puffernet(net2, env2.observations, env2.actions);
+                    forward_puffernet(net3, env3.observations, env3.actions);
                 }
 
                 frame++;
-                c_step(&env);
-                c_render(&env);
+                c_step(&env1);
+                c_step(&env2);
+                c_step(&env3);
+                c_render(&env1);
+                c_render(&env2);
+                c_render(&env3);
                 if(frame > (int)10000) {
                     break;
                 }
             }
             free_puffernet(net);
-            free(weights);
-            free_allocated(&env);
-            close_client(env.client);
+            free_puffernet(net2);
+            free_puffernet(net3);
+            free(weights1);
+            free(weights2);
+            free(weights3);
+            free_allocated(&env1);
+            free_allocated(&env2);
+            free_allocated(&env3);
+            close_client(env1.client);
+            close_client(env2.client);
+            close_client(env3.client);
         }
     }
     for (y = 0; y < yres; y++)
