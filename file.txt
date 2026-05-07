@@ -1,0 +1,3 @@
+Show side-by-side during eval, eg. multiple environment evaluation seemingly simultaneously.
+Breakout struct has width, height - just need origin_x, and origin_y, right?
+Separate c_step + c_render per environment, eg. main loop has c_step(one) and c_step(two) then c_render(one) and c_render(two) using separate net, client and weights as applicable.
