@@ -744,7 +744,7 @@ void c_render(Breakout* env) {
         env->score, env->balls_fired, destroyed,
         (int)env->tick, (int)env->ball_x, (int)env->ball_y);
     x = env->origin_x / 2;
-    y = env->origin_y;
+    y = env->origin_y / 2;
     print_string(text1, font1);
     //print_string("testing font2", font2);
 #endif
