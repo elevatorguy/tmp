@@ -1,3 +1,14 @@
+#ifdef UEFI
+unsigned int x = 0;
+unsigned int y = 0;
+unsigned int text_fg_color = 0xFFFFFFFF;
+unsigned int text_bg_color = 0xFF061717;
+#include "uefi_compat.h"
+Bitmap_Font* font1;
+Bitmap_Font* font2;
+char text1[255];
+char text2[255];
+#else
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -5,6 +16,7 @@
 #include <math.h>
 #include <time.h>
 #include "raylib.h"
+#endif
 
 #define X_THRESHOLD 2.4f
 #define THETA_THRESHOLD_RADIANS (12 * 2 * M_PI / 360)
@@ -12,6 +24,10 @@
 #define WIDTH 600
 #define HEIGHT 200
 #define SCALE 100
+
+#ifdef UEFI
+bool console_signal = false;
+#endif
 
 typedef struct Log Log;
 struct Log {
@@ -39,8 +55,10 @@ struct Cartpole {
     int num_agents;
     Client* client;
     float x;
+    float x_prev;
     float x_dot;
     float theta;
+    float theta_prev;
     float theta_dot;
     int tick;
     float cart_mass;
@@ -52,6 +70,8 @@ struct Cartpole {
     int continuous;
     float episode_return;
     unsigned int rng;
+    int origin_x;
+    int origin_y;
 };
 
 void add_log(Cartpole* env) {
@@ -71,6 +91,9 @@ void add_log(Cartpole* env) {
 void init(Cartpole* env) {
     env->tick = 0;
     memset(&env->log, 0, sizeof(Log));
+#ifdef UEFI
+    console_signal = false;
+#endif
 }
 
 void allocate(Cartpole* env) {
@@ -98,40 +121,61 @@ const Color PUFF_BACKGROUND = (Color){6, 24, 24, 255};
 
 Client* make_client(Cartpole* env) {
     Client* client = (Client*)calloc(1, sizeof(Client));
-    InitWindow(WIDTH, HEIGHT, "puffer Cartpole");
+#ifndef UEFI
+    InitWindow(WIDTH, HEIGHT, "file");
     SetTargetFPS(60);
+#endif
     return client;
 }
 
 void close_client(Client* client) {
+#ifndef UEFI
     CloseWindow();
+#else
+    console_signal = true;
+#endif
     free(client);
 }
 
 void c_render(Cartpole* env) {
+#ifndef UEFI
     if (IsKeyDown(KEY_ESCAPE))
         exit(0);
     if (IsKeyPressed(KEY_TAB))
         ToggleFullscreen();
-
+#endif
     if (env->client == NULL) {
         env->client = make_client(env);
     }
 
+#ifndef UEFI
     BeginDrawing();
     ClearBackground(PUFF_BACKGROUND);
-    DrawLine(0, HEIGHT / 1.5, WIDTH, HEIGHT / 1.5, PUFF_CYAN);
-    float cart_x = WIDTH / 2 + env->x * SCALE;
-    float cart_y = HEIGHT / 1.6;
+#endif
+    DrawLine(env->origin_x, env->origin_y + (HEIGHT / 1.5), env->origin_x + WIDTH, env->origin_y + (HEIGHT / 1.5), PUFF_CYAN);
+    float cart_x = env->origin_x + (WIDTH / 2 + env->x * SCALE);
+    float cart_x_prev = env->origin_x + (WIDTH / 2 + env->x_prev * SCALE);
+    float cart_y = env->origin_y + (HEIGHT / 1.6);
+    DrawRectangle((int)(cart_x_prev - 20), (int)(cart_y - 10), 40, 20, PUFF_BACKGROUND);
     DrawRectangle((int)(cart_x - 20), (int)(cart_y - 10), 40, 20, PUFF_CYAN);
     float pole_length = 2.0f * 0.5f * SCALE;
     float pole_x2 = cart_x + sinf(env->theta) * pole_length;
+    float pole_x2_prev = cart_x_prev + sinf(env->theta_prev) * pole_length;
     float pole_y2 = cart_y - cosf(env->theta) * pole_length;
+    float pole_y2_prev = cart_y - cosf(env->theta_prev) * pole_length;
+    DrawLineEx((Vector2){cart_x_prev, cart_y}, (Vector2){pole_x2_prev, pole_y2_prev}, 5, PUFF_BACKGROUND);
     DrawLineEx((Vector2){cart_x, cart_y}, (Vector2){pole_x2, pole_y2}, 5, PUFF_RED);
+#ifndef UEFI
     DrawText(TextFormat("Steps: %i", env->tick), 10, 10, 20, PUFF_WHITE);
     DrawText(TextFormat("Cart Position: %.2f", env->x), 10, 40, 20, PUFF_WHITE);
     DrawText(TextFormat("Pole Angle: %.2f", env->theta * 180.0f / M_PI), 10, 70, 20, PUFF_WHITE);
     EndDrawing();
+#else
+    //sprintf(text1,"s:%i x,th:%.2f,%.2f      \n", env->tick, env->x, env->theta * 180.0f / M_PI);
+    x = env->origin_x / 2;
+    y = env->origin_y / 2;
+    print_string(text1, font1);
+#endif
 }
 
 void compute_observations(Cartpole* env) {
@@ -159,6 +203,9 @@ void c_step(Cartpole* env) {
     }
     a = fminf(fmaxf(a, -1.0f), 1.0f);
     env->actions[0] = a;
+
+    env->x_prev = env->x;
+    env->theta_prev = env->theta;
 
     float force = env->continuous ? a * env->force_mag
         : (a > 0.5f ? env->force_mag: -env->force_mag);

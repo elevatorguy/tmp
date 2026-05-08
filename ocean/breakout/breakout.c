@@ -16,18 +16,6 @@ uint32_t* fb;
 uint32_t xres;
 uint32_t yres;
 
-void DrawRectangle(int x, int y, int w, int h, Color color) {
-    for (int row = 0; row < h; row++) {
-        for (int col = 0; col < w; col++) {
-            unsigned int px = x + col;
-            unsigned int py = y + row;
-            if (py >= 0 && py < yres && px >= 0 && px < xres) {
-                fb[py*xres + px] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
-            }
-        }
-    }
-}
-
 void forward_net(PufferNet* net, float* observations, float* actions, bool use_rnd) {
     linear(net->encoder, observations);
     mingru(net->mingru, net->encoder->output);
@@ -47,14 +35,12 @@ void forward_net(PufferNet* net, float* observations, float* actions, bool use_r
 __attribute__((section(".kernel"), aligned(0x1000)))
 noreturn void EFIAPI kmain(Kernel_Parms *kargs) {
     UINT64 fb_base = (UINT64)kargs->gop_mode.FrameBufferBase;
-    UINTN pitch = kargs->gop_mode.Info->PixelsPerScanLine;
     UINTN w = kargs->gop_mode.Info->HorizontalResolution;
 
     font1 = &kargs->fonts[0];
     font2 = &kargs->fonts[1];
 
     if (fb_base != 0 && w > 0) {
-        volatile UINT32 *test_fb = (volatile UINT32*)fb_base;
         UINTN h = kargs->gop_mode.Info->VerticalResolution;
         fb = (uint32_t*)fb_base;
         xres = w;

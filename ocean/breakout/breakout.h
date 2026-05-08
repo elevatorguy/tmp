@@ -6,12 +6,6 @@ unsigned int text_bg_color = 0xFF061717;
 #include "uefi_compat.h"
 Bitmap_Font* font1;
 Bitmap_Font* font2;
-typedef struct Color {
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-} Color;
 char text1[255];
 char text2[255];
 #else
@@ -156,9 +150,6 @@ void step_frame(Breakout* env, float action);
 void c_step(Breakout* env);
 Client* make_client(Breakout* env);
 void close_client(Client* client);
-#ifdef UEFI
-extern void DrawRectangle(int x, int y, int w, int h, Color color);
-#endif
 void c_render(Breakout* env);
 
 void generate_brick_positions(Breakout* env) {
@@ -652,9 +643,9 @@ void c_render(Breakout* env) {
         env->client = make_client(env);
     }
 
+#ifndef UEFI
     Client* client = env->client;
 
-#ifndef UEFI
     if (IsKeyDown(KEY_ESCAPE)) {
         exit(0);
     }

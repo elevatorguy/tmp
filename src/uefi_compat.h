@@ -5,6 +5,13 @@
 #include <file.h>
 #include <lib.h>
 
+typedef struct Color {
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
+} Color;
+
 // Memory functions - arena allocator for UEFI
 static char _arena_buf[8*1024*1024];  // 8MB arena
 static size_t _arena_offset = 0;
@@ -39,7 +46,7 @@ void srand(unsigned int seed) {
 // Math stubs - Taylor series approximations for UEFI (no libm)
 #define M_PI 3.14159265358979323846
 
-static float _sinf(float x) {
+float _sinf(float x) {
     // Normalize to [-PI, PI]
     while (x > M_PI) x -= 2*M_PI;
     while (x < -M_PI) x += 2*M_PI;
@@ -48,14 +55,14 @@ static float _sinf(float x) {
     return x * (1.0f - x2/6.0f * (1.0f - x2/20.0f * (1.0f - x2/42.0f)));
 }
 
-static float _cosf(float x) {
+float _cosf(float x) {
     while (x > M_PI) x -= 2*M_PI;
     while (x < -M_PI) x += 2*M_PI;
     float x2 = x*x;
     return 1.0f - x2/2.0f * (1.0f - x2/12.0f * (1.0f - x2/30.0f));
 }
 
-static float _expf(float x) {
+float _expf(float x) {
     // Taylor: 1 + x + x^2/2 + x^3/6 + ...
     float sum = 1.0f;
     float term = 1.0f;
@@ -66,7 +73,7 @@ static float _expf(float x) {
     return sum;
 }
 
-static float _logf(float x) {
+float _logf(float x) {
     // Taylor around x=1: (x-1) - (x-1)^2/2 + (x-1)^3/3 - ...
     if (x <= 0) return -100;
     float y = x - 1.0f;
@@ -79,7 +86,7 @@ static float _logf(float x) {
     return sum;
 }
 
-static float _sqrtf(float x) {
+float _sqrtf(float x) {
     // Newton's method
     float guess = x / 2.0f;
     for (int i = 0; i < 10; i++) {
@@ -88,7 +95,7 @@ static float _sqrtf(float x) {
     return guess;
 }
 
-static float _tanhf(float x) {
+float _tanhf(float x) {
     // tanh(x) = (e^x - e^-x)/(e^x + e^-x)
     float ex = _expf(x);
     float emx = _expf(-x);
@@ -112,6 +119,16 @@ static float _tanhf(float x) {
 #define sqrt(x) _sqrtf(x)
 #define fminf(x, y) ((x) < (y) ? (x) : (y))
 #define fmaxf(x, y) ((x) > (y) ? (x) : (y))
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define abs(x) ((x) < 0 ? -(x) : (x))
+#define isfinite(x) (1)
+
+typedef struct Vector2 { float x; float y; } Vector2;
+
+inline int rand_r(unsigned int* seed) {
+    *seed = (*seed * 1103515245 + 12345) & 0x7fffffff;
+    return *seed;
+}
 
 // Random
 int rand(void);
@@ -204,6 +221,56 @@ void print_string(char *string, Bitmap_Font *font) {
             x = 0;
             line_feed(font);
         }
+    }
+}
+
+void DrawPixel(int x, int y, Color color) {
+    if (x >= 0 && (unsigned int)x < xres && y >= 0 && (unsigned int)y < yres)
+        fb[y*xres + x] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+}
+
+void DrawRectangle(int x, int y, int w, int h, Color color) {
+    for (int row = 0; row < h; row++) {
+        for (int col = 0; col < w; col++) {
+            unsigned int px = x + col;
+            unsigned int py = y + row;
+            if (py >= 0 && py < yres && px >= 0 && px < xres) {
+                fb[py*xres + px] = (color.a << 24) | (color.r << 16) | (color.g << 8) | color.b;
+            }
+        }
+    }
+}
+
+void DrawLine(int x1, int y1, int x2, int y2, Color color) {
+    int dx = x2 - x1, dy = y2 - y1;
+    int steps = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
+    if (steps == 0) { DrawPixel(x1, y1, color); return; }
+    for (int i = 0; i <= steps; i++) {
+        int x = x1 + dx * i / steps;
+        int y = y1 + dy * i / steps;
+        DrawPixel(x, y, color);
+    }
+}
+
+void DrawLineEx(Vector2 v1, Vector2 v2, int thickness, Color color) {
+    int x1 = v1.x;
+    int y1 = v1.y;
+    int x2 = v2.x;
+    int y2 = v2.y;
+    int dx = x2 - x1, dy = y2 - y1;
+    int steps = (abs(dx) > abs(dy)) ? abs(dx) : abs(dy);
+    if (steps == 0) {
+        for (int ty = -thickness/2; ty <= thickness/2; ty++)
+            for (int tx = -thickness/2; tx <= thickness/2; tx++)
+                DrawPixel(x1+tx, y1+ty, color);
+        return;
+    }
+    for (int i = 0; i <= steps; i++) {
+        int x = x1 + dx * i / steps;
+        int y = y1 + dy * i / steps;
+        for (int ty = -thickness/2; ty <= thickness/2; ty++)
+            for (int tx = -thickness/2; tx <= thickness/2; tx++)
+                DrawPixel(x+tx, y+ty, color);
     }
 }
 
