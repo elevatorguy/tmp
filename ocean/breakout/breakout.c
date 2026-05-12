@@ -250,7 +250,7 @@ void demo() {
     c_reset(&env);
     int frame = 0;
 #ifndef UEFI
-    SetTargetFPS(60);
+    SetTargetFPS(240);
     while (!WindowShouldClose()) {
         // User can take control of the paddle
         if (IsKeyDown(KEY_LEFT_SHIFT)) {
