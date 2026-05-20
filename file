@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+cd /opt/puffer
+/opt/puffer/build.sh $1 --uefi-kernel
+cp $1.elf /boot/efi-dev/efi_c/kernel
+cd /boot/efi-dev/efi_c
+make image
+/boot/efi-dev/efi_c/file.sh
+reboot
