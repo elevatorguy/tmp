@@ -13,7 +13,7 @@ real-time edit of sim or level of environment?
 Issue(s)
 --------
 
-fe7cce2
+[fe7cce2](https://github.com/elevatorguy/tmp/commit/fe7cce2)
 
 ---
 
