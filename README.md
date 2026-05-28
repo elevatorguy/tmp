@@ -10,6 +10,11 @@ Re-visit uefi-dev issue #19 to facilitate UEFI research of pufferlib; if not fix
 
 real-time edit of sim or level of environment?
 
+Issue(s)
+--------
+
+fe7cce2
+
 ---
 
 ![figure](https://pufferai.github.io/source/resource/header.png)
