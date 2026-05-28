@@ -1,3 +1,17 @@
+UEFI environment evaluation
+===========================
+
+"Figure 1: cartpole as expected; breakout ain't" - may add third
+
+Note(s)
+-------
+
+Re-visit uefi-dev issue #19 to facilitate UEFI research of pufferlib; if not fixed, workaround required if reviewing on multi-disk system(s) - if n disks, one data partition per n disk(s), respectively.
+
+real-time edit of sim or level of environment?
+
+---
+
 ![figure](https://pufferai.github.io/source/resource/header.png)
 
 [![Discord](https://dcbadge.vercel.app/api/server/spT4huaGYV?style=plastic)](https://discord.gg/spT4huaGYV)
