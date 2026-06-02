@@ -6,9 +6,29 @@ UEFI environment evaluation
 Note(s)
 -------
 
+<details><summary>submodule</summary>
+
 Re-visit uefi-dev issue #19 to facilitate UEFI research of pufferlib; if not fixed, workaround required if reviewing on multi-disk system(s) - if n disks, one data partition per n disk(s), respectively.
 
+</details>
+
 real-time edit of sim or level of environment?
+
+<details><summary>May 8th, 2026</summary>
+
+Why isn't pufferlib's trained breakout environment evaluating as expected?
+
+Same checkpoint, but different outcome; yea? (may need to edit captures; --local and --uefi-kernel - for side-by-side comparison)
+
+Feature Idea: `--local` playback in `--uefi-kernel` (instead of step & render)
+
+Save 10000 frames to C array for showcase with runtime loop; perhaps render with a noise filter to emphasize prerecorded status - enabling `--local` and `--uefi-kernel` environment eval comparison. The case of cartpole is different, as the visual differences may seem non-distinguisable; playback allows determining how close `--local` and `--uefi-kernel` really are - frame-by-frame, perhaps once kernel input is feasible.
+
+How accessible is raylib's framebuffer? Without access, perhaps save uefi-kernel playback for replay in local OS; preference during analysis as OS-less, though - pure observation.
+
+Pufferlib has `--slowly`, but file format parsing/decode isn't preferable at present commit - 610dcc9; may need memcpy instead of pixel-by-pixel decode and draw - raw format needs to match Graphics Output Protocol ARGB framebuffer.
+
+</details>
 
 Issue(s)
 --------
