@@ -30,6 +30,10 @@ Pufferlib has `--slowly`, but file format parsing/decode isn't preferable at pre
 
 </details>
 
+Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
+
+TODO: side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
+
 Issue(s)
 --------
 
