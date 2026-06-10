@@ -8,7 +8,7 @@ Note(s)
 
 <details><summary>submodule</summary>
 
-~~Re-visit uefi-dev issue #19 to facilitate UEFI research of pufferlib; if not fixed, workaround required if reviewing on multi-disk system(s) - if n disks, one data partition per n disk(s), respectively.~~ see 6f0e686 and subsequent.
+~~Re-visit uefi-dev issue #19 to facilitate UEFI research of pufferlib; if not fixed, workaround required if reviewing on multi-disk system(s) - if n disks, one data partition per n disk(s), respectively.~~ see 6f0e686 and subsequent if needed for your workflow.
 
 </details>
 
