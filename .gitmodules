@@ -1,4 +1,4 @@
 [submodule "external/efi"]
 	path = external/efi
 	url = https://github.com/elevatorguy/file
-	branch = branch18
+	branch = branch20
