@@ -26,9 +26,10 @@ Pufferlib has `--slowly`, but file format parsing/decode isn't preferable at pre
 
 Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
 
-TODO: side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
+> The atmosphere itself is a filter, acoustically speaking - distance to lightning would need to be simulated, yes? (not that optical attentuation doesn't occur)
+> — Jason Garner ([env idea](https://robertsspaceindustries.com/spectrum/community/SC/lobby/38230/message/65933990) or not RL?)
 
-[env idea](https://robertsspaceindustries.com/spectrum/community/SC/lobby/38230/message/65933990) or not RL?
+TODO: side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
 
 Issue(s)
 --------
