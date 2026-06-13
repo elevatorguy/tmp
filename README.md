@@ -28,6 +28,8 @@ Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
 
 TODO: side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
 
+[env idea](https://robertsspaceindustries.com/spectrum/community/SC/lobby/38230/message/65933990) or not RL?
+
 Issue(s)
 --------
 
