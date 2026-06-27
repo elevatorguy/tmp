@@ -4,6 +4,5 @@ cd /opt/puffer
 /opt/puffer/build.sh $1 --uefi-kernel
 cp $1.elf external/efi/efi_c/kernel
 cd external/efi/efi_c
-xxd -i kernel kernel.h && make FILE.EFI && make image
-/opt/puffer/external/efi/efi_c/file.sh
+xxd -i kernel kernel.h && make FILE.EFI
 reboot
