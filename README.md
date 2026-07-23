@@ -3,11 +3,6 @@ UEFI environment evaluation
 
 "Figure 1: cartpole as expected; breakout ain't"
 
-Acknowledgement(s)
-------------------
-
-- [No Later Than June 1, 2026](https://pi.dev/models/opencode/big-pickle)
-
 Note(s)
 -------
 
