@@ -760,15 +760,27 @@ void mingru_reg_train(void* w, void* activations,
     alloc_register(acts, &a->grad_input_buf);
     alloc_register(acts, &a->grad_next_state);
     for (int i = 0; i < m->num_layers; i++) {
-        a->scan_bufs[i] = {
-            .B = B, .T = TT, .H = H,
-            .scan_h =           {.shape = {B, TT, H}},
-            .out =              {.shape = {B, TT, H}},
-            .next_state =       {.shape = {B, 1, H}},
-            .grad_combined =    {.shape = {B, TT, 3 * H}},
-            .grad_state =       {.shape = {B, 1, H}},
-            .grad_input =       {.shape = {B, TT, H}},
-        };
+        a->scan_bufs[i].B = B;
+        a->scan_bufs[i].T = TT;
+        a->scan_bufs[i].H = H;
+        a->scan_bufs[i].scan_h.shape[0] = B;
+        a->scan_bufs[i].scan_h.shape[1] = TT;
+        a->scan_bufs[i].scan_h.shape[2] = H;
+        a->scan_bufs[i].out.shape[0] = B;
+        a->scan_bufs[i].out.shape[1] = TT;
+        a->scan_bufs[i].out.shape[2] = H;
+        a->scan_bufs[i].next_state.shape[0] = B;
+        a->scan_bufs[i].next_state.shape[1] = 1;
+        a->scan_bufs[i].next_state.shape[2] = H;
+        a->scan_bufs[i].grad_combined.shape[0] = B;
+        a->scan_bufs[i].grad_combined.shape[1] = TT;
+        a->scan_bufs[i].grad_combined.shape[2] = 3 * H;
+        a->scan_bufs[i].grad_state.shape[0] = B;
+        a->scan_bufs[i].grad_state.shape[1] = 1;
+        a->scan_bufs[i].grad_state.shape[2] = H;
+        a->scan_bufs[i].grad_input.shape[0] = B;
+        a->scan_bufs[i].grad_input.shape[1] = TT;
+        a->scan_bufs[i].grad_input.shape[2] = H;
         a->saved_inputs[i]  = {.shape = {B, TT, H}};
         a->combined_bufs[i] = {.shape = {B_TT, 3 * H}};
         a->wgrad_scratch[i] = {.shape = {3 * H, H}};
