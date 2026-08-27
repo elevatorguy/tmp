@@ -94,6 +94,7 @@ typedef struct Breakout {
     int width;
     int height;
     int num_bricks;
+    int num_resets;
     int brick_rows;
     int brick_cols;
     int ball_width;
@@ -105,6 +106,7 @@ typedef struct Breakout {
     int half_max_score;
     int score_at_last_ball;
     int tick;
+    int destroyed_across_resets;
     int frameskip;
     unsigned char hit_brick;
     int continuous;
@@ -168,6 +170,8 @@ void generate_brick_positions(Breakout* env) {
 void init(Breakout* env) {
     env->tick = 0;
     env->num_bricks = env->brick_rows * env->brick_cols;
+    env->num_resets = 0;
+    env->destroyed_across_resets = 0;
     assert(env->num_bricks > 0);
 
     env->brick_x = (float*)calloc(env->num_bricks, sizeof(float));
@@ -519,6 +523,7 @@ void c_reset(Breakout* env) {
     }
     reset_round(env);
     env->tick = 0;
+    env->num_resets = env->num_resets + 1;
     compute_observations(env);
 }
 
@@ -606,6 +611,12 @@ void c_step(Breakout* env) {
         env->tick += 1;
         step_frame(env, action);
     }
+
+#ifdef UEFI
+    for (int i = 0; i < env->num_bricks; i++) {
+        if (env->brick_states[i] == 1) env->destroyed_across_resets++;
+    }
+#endif
 
     compute_observations(env);
 }
@@ -722,17 +733,12 @@ void c_render(Breakout* env) {
     DrawText(TextFormat("Balls: %i", env->num_balls), client->width - 80, 10, 20, WHITE);
     EndDrawing();
 #else
-    int destroyed = 0;
-    for (int i = 0; i < env->num_bricks; i++) {
-        if (env->brick_states[i] == 1) destroyed++;
-    }
-
     //sprintf(text2, "a0:%d bx:%d by:%d px:%d py:%d\n", (int)env->actions[0], (int)(env->observations[2]*100), (int)(env->observations[3]*100), (int)(env->observations[0]*100), (int)(env->observations[1]*100));
     //y = env->height;
     //x = 0;
     //print_string(text2, font1); //secondary
-    sprintf(text1,"sc:%u ff:%d dst:%d t:%d xy:%d %d       \n",
-        env->score, env->balls_fired, destroyed,
+    sprintf(text1,"sc:%u r:%d dst:%d t:%d xy:%d %d       \n",
+        env->score, env->num_resets, env->destroyed_across_resets,
         (int)env->tick, (int)env->ball_x, (int)env->ball_y);
     x = env->origin_x / 2;
     y = env->origin_y / 2;

@@ -1,6 +1,6 @@
 UEFI environment evaluation
 ===========================
-[insert video here]
+[insert framebuffer here]
 
 "Figure 1: cartpole as expected; breakout ain't"
 
