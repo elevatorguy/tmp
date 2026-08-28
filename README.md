@@ -30,3 +30,5 @@ Issue(s)
 --------
 
 [fe7cce2](https://github.com/elevatorguy/tmp/commit/fe7cce2)
+
+Figure 1.

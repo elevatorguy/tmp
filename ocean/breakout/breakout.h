@@ -614,7 +614,7 @@ void c_step(Breakout* env) {
 
 #ifdef UEFI
     for (int i = 0; i < env->num_bricks; i++) {
-        if (env->brick_states[i] == 1) env->destroyed_across_resets++;
+        if (env->brick_states[i] == 1) env->destroyed_across_resets++; //todo: if implemented like edge_detection, would need brick_states_prev[i]
     }
 #endif
 
