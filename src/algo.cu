@@ -196,6 +196,18 @@ __device__ __forceinline__ float lerp(float a, float b, float w) {
     return (fabsf(w) < 0.5f) ? a + w * diff : b - diff * (1.0f - w);
 }
 
+// LLM says __ldg has no overload for __nv_bfloat16 on CUDA 12.0.
+//reference: https://docs.nvidia.com/cuda/cuda-c-programming-guide/#read-only-data-cache-load-function
+#ifdef PRECISION_FLOAT
+__device__ __forceinline__ precision_t precision_ldg(const precision_t* p) {
+    return __ldg(p);
+}
+#else
+__device__ __forceinline__ precision_t precision_ldg(const precision_t* p) {
+    return *p;
+}
+#endif
+
 // Rollout MinGRU step: h = (1-z)*h + z*h_tilde, highway out = s*h + (1-s)*x.
 __global__ void mingru_gate(precision_t* out, precision_t* next_state,
         const precision_t* combined, const precision_t* state_in,
@@ -282,10 +294,10 @@ __global__ void mingru_scan_forward(PrefixScan scan) {
         }
         scan_h[h_base + t * H] = from_float(h_t);
 
-        float hidden_val = to_float(__ldg(&combined_h_base[t_offset]));
-        float gate_val = to_float(__ldg(&combined_g_base[t_offset]));
-        float proj_val = to_float(__ldg(&combined_p_base[t_offset]));
-        float x_val = to_float(__ldg(&input[out_base + t * H]));
+        float hidden_val = to_float(precision_ldg(&combined_h_base[t_offset]));
+        float gate_val = to_float(precision_ldg(&combined_g_base[t_offset]));
+        float proj_val = to_float(precision_ldg(&combined_p_base[t_offset]));
+        float x_val = to_float(precision_ldg(&input[out_base + t * H]));
 
         // h = (1-z)*h + z*h_tilde  (exact sigmoid; matches prior train log-space)
         float z = sigmoid(gate_val);
@@ -348,13 +360,13 @@ __global__ void mingru_scan_backward(PrefixScan scan,
         int t_offset = t0 * H3;
         int input_idx = out_base + t0 * H;
 
-        float h_prev = to_float(__ldg(&scan_h[h_base + (t - 1) * H]));
+        float h_prev = to_float(precision_ldg(&scan_h[h_base + (t - 1) * H]));
 
-        float hidden_val = to_float(__ldg(&combined_h_base[t_offset]));
-        float gate_val = to_float(__ldg(&combined_g_base[t_offset]));
-        float proj_val = to_float(__ldg(&combined_p_base[t_offset]));
-        float x_val = to_float(__ldg(&input[input_idx]));
-        float grad_out_val = to_float(__ldg(&grad_out[input_idx]));
+        float hidden_val = to_float(precision_ldg(&combined_h_base[t_offset]));
+        float gate_val = to_float(precision_ldg(&combined_g_base[t_offset]));
+        float proj_val = to_float(precision_ldg(&combined_p_base[t_offset]));
+        float x_val = to_float(precision_ldg(&input[input_idx]));
+        float grad_out_val = to_float(precision_ldg(&grad_out[input_idx]));
 
         float z = sigmoid(gate_val);
         float h_tilde = (hidden_val >= 0.0f) ? hidden_val + 0.5f : sigmoid(hidden_val);

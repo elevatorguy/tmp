@@ -370,7 +370,7 @@ Client* make_client(int cell_size, int width, int height) {
     client->cell_size = cell_size;
     client->width = width;
     client->height = height;
-    InitWindow(width*cell_size, height*cell_size, "PufferLib Snake");
+    InitWindow(width*cell_size, height*cell_size, "file");
     SetTargetFPS(60);
     return client;
 }

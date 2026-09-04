@@ -256,6 +256,9 @@ void alloc_register(Allocator* a, Int* t) {
 }
 
 void alloc_create(Allocator* alloc) {
+    fprintf(stderr, "alloc->total_bytes = %zu bytes = %.2f MiB\n",
+        alloc->total_bytes,
+        alloc->total_bytes / (1024.0 * 1024.0));
     assert(cudaMalloc(&alloc->mem, alloc->total_bytes) == cudaSuccess
         && "alloc_create: cudaMalloc failed");
     cudaMemset(alloc->mem, 0, alloc->total_bytes);
