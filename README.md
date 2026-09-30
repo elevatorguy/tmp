@@ -26,6 +26,8 @@ Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
 
 Perhaps side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
 
+Presently no input as without `CTRL`+`ALT`+`DEL`.
+
 Issue(s)
 --------
 
