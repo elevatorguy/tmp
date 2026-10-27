@@ -22,6 +22,11 @@ Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
 > The atmosphere itself is a filter, acoustically speaking - distance to lightning would need to be simulated, yes? (not that optical attenuation doesn't occur)
 > — [Jason G.](https://robertsspaceindustries.com/citizens/Perceus) in [`#sc-testing-chat`](https://robertsspaceindustries.com/spectrum/community/SC/lobby/38230/message/65933990)
 
+<details>
+<summary>Paper not necessarily applicable</summary>
+Found https://info.arxiv.org/help/endorsement.html - what of new categories? Assuming institutional email may not necessarily be endorsement as address uses alumni subdomain.
+</details>
+
 ---
 
 Perhaps side-by-side evaluation, eg. with and without --float instead of `./build.sh env --uefi-kernel --float` producing separate `.elf`.
