@@ -15,6 +15,9 @@ Why isn't pufferlib's trained breakout environment evaluating as expected? Same 
 
 real-time edit of sim or level of environment?
 
+> insert quote from video here
+> — Rich Tyrer in [`@RobertsSpaceInd`](https://www.youtube.com/watch?v=BA9qmg1Oz5M)
+
 ---
 
 Citation needed: https://github.com/PufferAI/PufferLib/pulls?q=--float
